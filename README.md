@@ -29,6 +29,19 @@ La primera vez Godot importa el proyecto y registra las clases; si ves errores d
 
 En PC también puedes usar los botones táctiles con el mouse.
 
+## Probarlo en GitHub Codespaces (navegador o celular)
+
+Codespaces no tiene pantalla para el editor de Godot, así que el juego se exporta a Web y se abre en el navegador.
+
+1. En GitHub abre el repo → **Code** → pestaña **Codespaces** → **Create codespace on main**.
+2. Cuando cargue VS Code en el navegador, abre la terminal (**Ctrl + `**).
+3. Ejecuta `bash tools/web.sh`. La primera vez descarga Godot y las plantillas de exportación (~1 GB); las siguientes veces tarda segundos.
+4. Cuando diga *Sirviendo en el puerto 8000*, abre la pestaña **PUERTOS** y pulsa el icono del globo junto al 8000.
+5. Para probarlo en el celular, en **PUERTOS** haz clic derecho en el 8000 → *Port Visibility* → **Public**, copia la dirección y ábrela en el teléfono en horizontal. Vuelve a ponerlo en *Private* al terminar.
+6. Tras cambiar código: **Ctrl + C** en la terminal y vuelve a ejecutar `bash tools/web.sh`.
+
+Haz clic en el juego antes de usar el teclado. Cuando termines, detén o elimina el codespace para no gastar tu cuota gratuita.
+
 ## Qué incluye el prototipo
 
 - **Mateo** jugable, con sus ventajas pasivas: más vida y estamina, y más daño cuerpo a cuerpo (peor puntería). **Lena** ya está definida en `characters.gd` para cuando se agregue la selección.
@@ -61,6 +74,7 @@ scripts/
   weather.gd            Lluvia ácida y niebla tóxica
   input_setup.gd        Acciones de entrada (teclado)
   pixel_art.gd          Arte placeholder generado por código
+tools/web.sh            Exporta a Web y lo sirve (para Codespaces)
 docs/DISENO.md          Documento de diseño (historia, mapa, motor, hoja de ruta)
 ```
 
