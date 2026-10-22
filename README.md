@@ -26,6 +26,8 @@ La primera vez Godot importa el proyecto y registra las clases; si ves errores d
 | Esquivar | Espacio | Botón ESQUIVA |
 | Reparar arma (2 chatarras) | R | Botón REPARAR |
 | Linterna | F | Botón LUZ |
+| Mostrar / ocultar minimapa | M | Botón del mapa (junto al minimapa) |
+| Zoom del minimapa (3 niveles) | N | Tocar el minimapa |
 
 En PC también puedes usar los botones táctiles con el mouse.
 
@@ -49,7 +51,7 @@ Haz clic en el juego antes de usar el teclado. Cuando termines, detén o elimina
 - **Combate:** golpe cuerpo a cuerpo con aturdimiento y empuje, esquiva con invulnerabilidad breve.
 - **Ruido:** correr, atacar y esquivar hacen ruido y atraen zombis. Es la base para las armas de fuego con silenciador.
 - **Zombis:** caminantes (lentos, peligrosos en grupo), **corredores** (ven de más lejos y alcanzan casi al jugador) y **tanque** (220 de vida, apenas retrocede). Oyen, ven en cono (más lejos si llevas linterna) y pierden el rastro.
-- **Minimapa estilo GTA:** posición y orientación del jugador, objetivos (los lejanos se pegan al borde), alertas de zombis cercanos, anillo de ruido y **niebla de guerra** que se despeja al explorar.
+- **Minimapa circular estilo GTA:** mapa en alta resolución (calles, edificios con puertas, zona industrial), niebla de guerra, tu posición con cono de linterna y rastro de pasos, objetivos con flechas en el borde, zombis dentro del radar con alertas pulsantes, anillo de ruido, nombre del sector y 3 niveles de zoom. Se muestra u oculta con el botón del mapa.
 - **Mundo:** ciudad procedural con calles, edificios con puerta, autopista con barricadas y zona industrial al este.
 - **Atmósfera:** ciclo día/noche con linterna, lluvia ácida y niebla tóxica (dañan al aire libre; los edificios protegen).
 - **Refugio:** al entrar se guarda el progreso (punto de reaparición), recuperas vida y los zombis pierden tu rastro.
@@ -70,13 +72,15 @@ scripts/
   characters.gd         Datos de Mateo y Lena (estadísticas y paleta)
   hud.gd                Reloj, arma, objetivos, avisos, pantallas de fin
   stat_bars.gd          Barras pixel art con icono y animaciones (vida, estamina, hambre, sed, infección)
-  minimap.gd            Minimapa con niebla de guerra
+  minimap.gd            Minimapa circular, niebla de guerra y botón de mostrar/ocultar
+  ui_font.gd            Carga la fuente pixel del juego
   touch_controls.gd     Joystick y botones táctiles
   weather.gd            Lluvia ácida y niebla tóxica
   input_setup.gd        Acciones de entrada (teclado)
   pixel_art.gd          Arte placeholder generado por código
 tools/web.sh            Exporta a Web y lo sirve (para Codespaces)
-assets/ui/              Iconos del HUD (16x16); los originales están en assets/ui/originales
+assets/ui/              Iconos del HUD (vida, estamina, hambre, sed, infección, mapa); originales en assets/ui/originales
+assets/fonts/           Fuente Pixelify Sans (licencia OFL incluida)
 docs/DISENO.md          Documento de diseño (historia, mapa, motor, hoja de ruta)
 ```
 
@@ -89,3 +93,7 @@ docs/DISENO.md          Documento de diseño (historia, mapa, motor, hoja de rut
 ## Hoja de ruta
 
 Ver [docs/DISENO.md](docs/DISENO.md).
+
+## Créditos
+
+- Fuente **Pixelify Sans**, de Stefie Justprince, bajo licencia SIL Open Font License (ver `assets/fonts/OFL.txt`).

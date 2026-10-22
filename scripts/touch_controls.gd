@@ -22,7 +22,7 @@ var _font: Font
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	_font = ThemeDB.fallback_font
+	_font = UiFont.get_font()
 	get_viewport().size_changed.connect(_layout)
 	_layout()
 
@@ -31,8 +31,8 @@ func _layout() -> void:
 	var vs := get_viewport_rect().size
 	buttons = [
 		{"action": "attack", "c": Vector2(vs.x - 50.0, vs.y - 60.0), "r": 28.0, "label": "ATACAR"},
-		{"action": "dodge", "c": Vector2(vs.x - 116.0, vs.y - 34.0), "r": 19.0, "label": "ESQUIVA"},
-		{"action": "repair", "c": Vector2(vs.x - 40.0, vs.y - 124.0), "r": 15.0, "label": "REPARAR"},
+		{"action": "dodge", "c": Vector2(vs.x - 116.0, vs.y - 34.0), "r": 19.0, "label": "ESQ."},
+		{"action": "repair", "c": Vector2(vs.x - 40.0, vs.y - 124.0), "r": 15.0, "label": "REP."},
 		{"action": "flashlight", "c": Vector2(vs.x - 100.0, vs.y - 100.0), "r": 15.0, "label": "LUZ"},
 	]
 	queue_redraw()
@@ -122,4 +122,4 @@ func _draw() -> void:
 		draw_arc(c, r, 0.0, TAU, 32, Color(1, 1, 1, 0.5), 1.5)
 		if _font != null:
 			var label: String = b["label"]
-			draw_string(_font, c + Vector2(-r, 3.0), label, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, 7, Color(1, 1, 1, 0.8))
+			draw_string(_font, c + Vector2(-r, 4.0), label, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, 10, Color(1, 1, 1, 0.8))

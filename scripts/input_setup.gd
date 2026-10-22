@@ -14,6 +14,8 @@ static func register() -> void:
 	_bind("attack", [KEY_J, KEY_Z])
 	_bind("repair", [KEY_R])
 	_bind("flashlight", [KEY_F])
+	_bind("toggle_map", [KEY_M])
+	_bind("zoom_map", [KEY_N])
 
 
 static func _bind(action: String, keys: Array) -> void:
