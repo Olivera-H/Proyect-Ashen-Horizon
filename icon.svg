@@ -1,7 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect width="128" height="128" fill="#0a0a0d"/>
-  <rect y="78" width="128" height="50" fill="#1b1d22"/>
-  <circle cx="64" cy="78" r="30" fill="#c0392b"/>
-  <rect y="78" width="128" height="50" fill="#1b1d22"/>
-  <rect x="0" y="76" width="128" height="3" fill="#f1c40f"/>
-</svg>
+from PIL import Image
+import os
+src="/mnt/data/a_pixel_art_retro_16_bit_style_circular_emblem.png"
+im=Image.open(src).convert("RGB")
+# Reconstruct with editable SVG rects by quantizing at 128x128, limited colors.
+small=im.resize((128,128),Image.Resampling.BOX).quantize(colors=24,method=Image.Quantize.MEDIANCUT)
+rgb=small.convert("RGB")
+lines=['<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" shape-rendering="crispEdges">','  <title>Ashen Horizon - icon</title>']
+# Horizontal run-length encoded rectangles, merging consecutive same-color pixels.
+for y in range(128):
+    x=0
+    while x<128:
+        c=rgb.getpixel((x,y))
+        j=x+1
+        while j<128 and rgb.getpixel((j,y))==c:
+            j+=1
+        if c != (0,0,0):
+            lines.append(f'  <rect x="{x}" y="{y}" width="{j-x}" height="1" fill="#{c[0]:02x}{c[1]:02x}{c[2]:02x}"/>')
+        x=j
+lines.append('</svg>')
+out="/mnt/data/icon.svg"
+open(out,"w").write("\n".join(lines))
+print(out,os.path.getsize(out),len(lines))
