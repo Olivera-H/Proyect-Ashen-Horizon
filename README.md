@@ -96,4 +96,4 @@ Ver [docs/DISENO.md](docs/DISENO.md).
 
 ## Créditos
 
-- Fuente **Pixelify Sans**, de Stefie Justprince, bajo licencia SIL Open Font License (ver `assets/fonts/OFL.txt`).
+- Fuente **Pixelify Sans** (The Pixelify Sans Project Authors), bajo licencia SIL Open Font License (ver `assets/fonts/OFL.txt`).
