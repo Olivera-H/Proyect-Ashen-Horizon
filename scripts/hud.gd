@@ -10,6 +10,7 @@ var player: Player
 var world: World
 var goals: Array = []
 var minimap: Minimap
+var bars: StatBars
 var clock := 0.0
 var raining := false
 var warning := ""         # aviso de peligro ambiental (aire toxico, lluvia acida)
@@ -34,6 +35,10 @@ func setup(p: Player, w: World, g: Array) -> void:
 	goals = g
 	_font = ThemeDB.fallback_font
 	_scrap_icon = PixelArt.make_icon("scrap")
+	bars = StatBars.new()
+	bars.position = Vector2(10, 10)
+	add_child(bars)
+	bars.setup(p)
 	minimap = Minimap.new()
 	add_child(minimap)
 	minimap.setup(w, p, g)
@@ -67,7 +72,6 @@ func _draw() -> void:
 	if player == null or _font == null:
 		return
 	var vs := get_viewport_rect().size
-	_draw_bars()
 	_draw_gear()
 	_draw_clock(vs)
 	_draw_goals(vs)
@@ -76,31 +80,9 @@ func _draw() -> void:
 		_draw_end(vs)
 
 
-func _bar(pos: Vector2, label: String, value: float, max_value: float, col: Color) -> void:
-	var frac := clampf(value / max_value, 0.0, 1.0)
-	_txt(pos + Vector2(0, BAR_H + 1.0), label, 8, Color(0.9, 0.9, 0.9))
-	var bx := pos.x + 44.0
-	draw_rect(Rect2(bx - 1.0, pos.y - 1.0, BAR_W + 2.0, BAR_H + 2.0), Color(0, 0, 0, 0.7))
-	var c := col
-	if label != "INFEC" and frac < 0.25:
-		c = col.lerp(Color.WHITE, 0.5 + 0.5 * sin(_t * 8.0))
-	draw_rect(Rect2(bx, pos.y, BAR_W * frac, BAR_H), c)
-
-
-func _draw_bars() -> void:
-	var x := 10.0
-	var y := 10.0
-	_bar(Vector2(x, y), "VIDA", player.health, player.max_health, Color("d64545"))
-	var st := Color("c9a227") if not player.exhausted else Color("8a4a2a")
-	_bar(Vector2(x, y + 11.0), "ESTAM", player.stamina, player.max_stamina, st)
-	_bar(Vector2(x, y + 22.0), "HAMBRE", player.hunger, 100.0, Color("d9822b"))
-	_bar(Vector2(x, y + 33.0), "SED", player.thirst, 100.0, Color("4aa3df"))
-	_bar(Vector2(x, y + 44.0), "INFEC", player.infection, 100.0, Color("7bc043"))
-
-
 func _draw_gear() -> void:
 	var x := 10.0
-	var y := 70.0
+	var y := 116.0
 	_txt(Vector2(x, y + 7.0), player.weapon_name, 8, Color(0.85, 0.85, 0.9))
 	var frac := player.weapon_durability / Player.WEAPON_MAX
 	draw_rect(Rect2(x - 1.0, y + 10.0, 102.0, BAR_H - 1.0), Color(0, 0, 0, 0.7))

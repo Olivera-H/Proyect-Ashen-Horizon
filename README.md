@@ -68,13 +68,15 @@ scripts/
   player.gd             Movimiento, estamina, combate, supervivencia, ruido, linterna
   zombie.gd             IA (vagar / investigar / perseguir) y variantes
   characters.gd         Datos de Mateo y Lena (estadísticas y paleta)
-  hud.gd                Barras, reloj, objetivos, avisos, pantallas de fin
+  hud.gd                Reloj, arma, objetivos, avisos, pantallas de fin
+  stat_bars.gd          Barras pixel art con icono y animaciones (vida, estamina, hambre, sed, infección)
   minimap.gd            Minimapa con niebla de guerra
   touch_controls.gd     Joystick y botones táctiles
   weather.gd            Lluvia ácida y niebla tóxica
   input_setup.gd        Acciones de entrada (teclado)
   pixel_art.gd          Arte placeholder generado por código
 tools/web.sh            Exporta a Web y lo sirve (para Codespaces)
+assets/ui/              Iconos del HUD (16x16); los originales están en assets/ui/originales
 docs/DISENO.md          Documento de diseño (historia, mapa, motor, hoja de ruta)
 ```
 
