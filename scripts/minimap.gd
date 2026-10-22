@@ -11,10 +11,10 @@ extends Control
 ## - Toque en el mapa = cambia el zoom (3 niveles). Boton del mapa (o tecla M) = mostrar/ocultar.
 ## - Muestra el sector en el que estas.
 
-const D := 95                 # diametro del circulo (px virtuales)
+const D := 100                 # diametro del circulo (px virtuales)
 const BTN := 30                # lado del boton
 const GAP := 4
-const RIM := 8                 # grosor del marco
+const RIM := 6                 # grosor del marco
 const S := 4                   # px de la textura base por tile
 const F := 2                   # px de la niebla por tile
 const PAD := 48                # tiles de relleno alrededor del mapa (para el zoom maximo)
