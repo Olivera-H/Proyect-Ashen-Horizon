@@ -45,6 +45,7 @@ var _spike_t := 0.0
 var _swing_dir := Vector2.DOWN
 
 var sprite: AnimatedSprite2D
+var _sprite_base := Vector2.ZERO
 var camera: Camera2D
 var flash: PointLight2D
 var halo: PointLight2D
@@ -70,8 +71,14 @@ func setup(id: String) -> void:
 	add_child(shape)
 
 	sprite = AnimatedSprite2D.new()
-	sprite.sprite_frames = PixelArt.make_humanoid_frames(data["palette"])
-	sprite.position = Vector2(0, -4)
+	var sheet := SpriteSheets.frames(char_id, SpriteSheets.HUMAN)
+	if sheet != null:
+		sprite.sprite_frames = sheet
+		sprite.position = SpriteSheets.HUMAN_POS
+	else:  # arte de respaldo si falta la hoja de sprites
+		sprite.sprite_frames = PixelArt.make_humanoid_frames(data["palette"])
+		sprite.position = Vector2(0, -4)
+	_sprite_base = sprite.position
 	sprite.play("idle_down")
 	add_child(sprite)
 
@@ -312,10 +319,24 @@ func _update_visuals(delta: float) -> void:
 		sprite.flip_h = facing.x < 0.0
 	elif facing.y < 0.0:
 		anim_name = "up"
-	var wanted := ("walk_" if moving else "idle_") + anim_name
+	var prefix := "idle_"
+	if _attack_t > 0.0:
+		prefix = "attack_"
+	elif _dodge_t > 0.0:
+		prefix = "run_"
+	elif moving:
+		prefix = "run_" if running else "walk_"
+	var wanted := SpriteSheets.pick(sprite.sprite_frames, prefix, anim_name)
 	if sprite.animation != wanted:
 		sprite.play(wanted)
-	sprite.speed_scale = 1.4 if running else 1.0
+	sprite.speed_scale = 1.0
+	# la esquiva se ve como un impulso: cuerpo agachado y estirado
+	if _dodge_t > 0.0:
+		sprite.scale = Vector2(1.12, 0.84)
+		sprite.position = _sprite_base + Vector2(0, 2.5)
+	else:
+		sprite.scale = Vector2.ONE
+		sprite.position = _sprite_base
 
 	# parpadeo al recibir dano / esquivar
 	if _invuln > 0.0:
@@ -344,7 +365,7 @@ func _draw_fx() -> void:
 	var a0 := base - 1.0
 	var a1 := base + 1.0
 	var a := lerpf(a0, a1, progress)
-	var origin := Vector2(0, -3)
-	var tip := origin + Vector2.from_angle(a) * 20.0
-	fx.draw_line(origin + Vector2.from_angle(a) * 6.0, tip, Color("b8bcc4"), 2.0)
-	fx.draw_arc(origin, 17.0, a0, a, 10, Color(1, 1, 1, 0.35), 2.0)
+	var origin := Vector2(0, -6)
+	# el tubo ya esta dibujado en el sprite: aqui solo la estela del golpe
+	fx.draw_arc(origin, 17.0, a0, a, 10, Color(1, 1, 1, 0.45), 2.0)
+	fx.draw_arc(origin, 14.0, a0 + 0.2, a - 0.1, 8, Color(1, 1, 1, 0.2), 1.0)

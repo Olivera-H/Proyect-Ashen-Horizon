@@ -237,6 +237,39 @@ static func _hum_side(img: Image, swing: int, pal: Dictionary, zombie: bool) -> 
 	_rect(img, 8, 4, 1, 1, eye)
 
 
+# --------------------------------------------------------------- sangre
+
+## Charco de sangre pixel art (el zombi lo deja al morir).
+static func make_blood_splat(seed_value: int) -> ImageTexture:
+	var img := Image.create(24, 16, false, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var base := Color("6e1414")
+	var wet := Color("a32420")
+	var blobs := []
+	for i in 5:
+		blobs.append([rng.randi_range(6, 17), rng.randi_range(5, 10), rng.randi_range(2, 5)])
+	for b in blobs:
+		for y in range(b[1] - b[2], b[1] + b[2] + 1):
+			for x in range(b[0] - b[2], b[0] + b[2] + 1):
+				var d := Vector2(x - b[0], (y - b[1]) * 1.25).length()
+				if d <= b[2] and x >= 0 and y >= 0 and x < 24 and y < 16:
+					img.set_pixel(x, y, base)
+	for b in blobs:
+		var cx: int = b[0] - 1
+		var cy: int = b[1] - 1
+		if cx >= 0 and cy >= 0 and img.get_pixel(cx, cy).a > 0.0 and b[2] >= 3:
+			img.set_pixel(cx, cy, wet)
+			if cx + 1 < 24:
+				img.set_pixel(cx + 1, cy, wet)
+	for i in 7:   # gotas sueltas
+		var x := rng.randi_range(1, 22)
+		var y := rng.randi_range(1, 14)
+		if img.get_pixel(x, y).a == 0.0:
+			img.set_pixel(x, y, base)
+	return _tex(img)
+
+
 # -------------------------------------------------------------- iconos
 
 static func make_icon(kind: String) -> ImageTexture:

@@ -50,6 +50,7 @@ Haz clic en el juego antes de usar el teclado. Cuando termines, detén o elimina
 - **Supervivencia:** vida, estamina, hambre, sed e infección; inventario limitado (chatarra); arma improvisada con **desgaste** y reparación.
 - **Combate:** golpe cuerpo a cuerpo con aturdimiento y empuje, esquiva con invulnerabilidad breve.
 - **Ruido:** correr, atacar y esquivar hacen ruido y atraen zombis. Es la base para las armas de fuego con silenciador.
+- **Combate visual:** salpicaduras de sangre al golpear, charco que queda al matar y una pose de impulso al esquivar.
 - **Zombis:** caminantes (lentos, peligrosos en grupo), **corredores** (ven de más lejos y alcanzan casi al jugador) y **tanque** (220 de vida, apenas retrocede). Oyen, ven en cono (más lejos si llevas linterna) y pierden el rastro.
 - **Minimapa circular estilo GTA:** mapa en alta resolución (calles, edificios con puertas, zona industrial), niebla de guerra, tu posición con cono de linterna y rastro de pasos, objetivos con flechas en el borde, zombis dentro del radar con alertas pulsantes, anillo de ruido, nombre del sector y 3 niveles de zoom. Se muestra u oculta con el botón del mapa.
 - **Mundo:** ciudad procedural con calles, edificios con puerta, autopista con barricadas y zona industrial al este.
@@ -58,7 +59,11 @@ Haz clic en el juego antes de usar el teclado. Cuando termines, detén o elimina
 - **Historia:** 6 notas repartidas por el mapa y **eventos aleatorios** (estruendos que mueven a los infectados, cajas de suministros marcadas en el minimapa).
 - **Meta:** llegar al Laboratorio Horizonte.
 
-Todo el arte es **placeholder generado por código** (`pixel_art.gd`), así que el proyecto no depende de archivos de imagen. Cuando tengas arte real, reemplaza esas funciones por texturas importadas.
+Los **personajes y zombis** usan hojas de sprites (`assets/sprites/`) con contorno, sombreado y animaciones de reposo, caminar, correr y atacar en cuatro direcciones. Las genera `tools/gen_sprites.py` (cambia colores o formas y vuelve a ejecutarlo), o puedes abrirlas en Aseprite y pintarlas a mano respetando el tamaño de cuadro y el orden de filas. El resto del arte (tiles, objetos) sigue siendo provisional y se genera por código en `pixel_art.gd`.
+
+![Personajes y zombis](docs/captura-personajes.png)
+
+Fila superior: Mateo, Lena y los dos primeros caminantes. Fila inferior: los otros dos caminantes, los dos corredores y el tanque. Cada uno se muestra en reposo, caminando y atacando.
 
 ## Estructura
 
@@ -77,9 +82,12 @@ scripts/
   touch_controls.gd     Joystick y botones táctiles
   weather.gd            Lluvia ácida y niebla tóxica
   input_setup.gd        Acciones de entrada (teclado)
-  pixel_art.gd          Arte placeholder generado por código
+  pixel_art.gd          Tiles, iconos y luces generados por código (arte provisional)
+  sprite_sheets.gd      Carga las hojas de sprites y arma las animaciones
 tools/web.sh            Exporta a Web y lo sirve (para Codespaces)
+tools/gen_sprites.py    Genera las hojas de sprites (requiere Pillow)
 assets/ui/              Iconos del HUD (vida, estamina, hambre, sed, infección, mapa); originales en assets/ui/originales
+assets/sprites/         Hojas de sprites de personajes y zombis
 assets/fonts/           Fuente Pixelify Sans (licencia OFL incluida)
 docs/DISENO.md          Documento de diseño (historia, mapa, motor, hoja de ruta)
 ```

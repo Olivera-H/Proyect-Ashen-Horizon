@@ -22,6 +22,8 @@ var state := State.WANDER
 var player: Player = null
 var world: World = null
 var sprite: AnimatedSprite2D
+var variant := 0              # que aspecto de la hoja de sprites usa
+var _atk_t := 0.0
 var facing := Vector2.DOWN
 
 var _target := Vector2.ZERO
@@ -43,6 +45,7 @@ var sight_mult := 1.0
 ## Ajusta las estadisticas segun el tipo. Llamar ANTES de setup().
 func configure(k: String) -> void:
 	kind = k
+	variant = randi() % 4
 	match k:
 		"runner":  # agil: ve mas lejos y corre casi al ritmo del jugador
 			max_health = 24.0
@@ -50,15 +53,13 @@ func configure(k: String) -> void:
 			chase_speed = 70.0
 			damage = 9.0
 			sight_mult = 1.35
-			tint = Color(1.0, 0.85, 0.8)
 		"tank":    # colosal: aguanta mucho, golpea fuerte, casi no retrocede
 			max_health = 220.0
 			wander_speed = 10.0
 			chase_speed = 30.0
 			damage = 30.0
 			knock_resist = 0.15
-			body_scale = 1.6
-			tint = Color(0.75, 0.85, 0.65)
+			body_scale = 1.6   # solo el cuerpo fisico; el sprite del tanque ya es grande
 
 
 ## Un ruido lejano (evento del mapa) los hace ir a investigar.
@@ -85,9 +86,23 @@ func setup(w: World, p: Player) -> void:
 	add_child(shape)
 
 	sprite = AnimatedSprite2D.new()
-	sprite.sprite_frames = PixelArt.make_humanoid_frames(PixelArt.zombie_palette(), true)
-	sprite.position = Vector2(0, -4.0 * body_scale)
-	sprite.scale = Vector2.ONE * body_scale
+	var sheet: SpriteFrames = null
+	match kind:
+		"tank":
+			sheet = SpriteSheets.frames("tank", SpriteSheets.TANK)
+			sprite.position = SpriteSheets.TANK_POS
+		"runner":
+			sheet = SpriteSheets.frames("runner_%d" % (variant % 2), SpriteSheets.HUMAN)
+			sprite.position = SpriteSheets.HUMAN_POS
+		_:
+			sheet = SpriteSheets.frames("walker_%d" % (variant % 4), SpriteSheets.HUMAN)
+			sprite.position = SpriteSheets.HUMAN_POS
+	if sheet != null:
+		sprite.sprite_frames = sheet
+	else:  # arte de respaldo si falta la hoja de sprites
+		sprite.sprite_frames = PixelArt.make_humanoid_frames(PixelArt.zombie_palette(), true)
+		sprite.position = Vector2(0, -4.0 * body_scale)
+		sprite.scale = Vector2.ONE * body_scale
 	sprite.play("idle_down")
 	add_child(sprite)
 
@@ -113,7 +128,9 @@ func take_damage(amount: float, knockback: Vector2, stun_time: float) -> void:
 	if player != null and not player.dead:
 		state = State.CHASE
 		_target = player.global_position
+	_spawn_blood(6 if health > 0.0 else 14, knockback.normalized() if knockback.length() > 1.0 else Vector2.DOWN)
 	if health <= 0.0:
+		_leave_corpse()
 		queue_free()
 
 
@@ -122,6 +139,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_attack_cd = maxf(0.0, _attack_cd - delta)
 	_flash_t = maxf(0.0, _flash_t - delta)
+	_atk_t = maxf(0.0, _atk_t - delta)
 	_alert_t = maxf(0.0, _alert_t - delta)
 
 	if _stun > 0.0:
@@ -222,19 +240,80 @@ func _do_chase() -> float:
 	facing = _dir
 	if to_p.length() < ATTACK_RANGE * body_scale and _attack_cd <= 0.0:
 		_attack_cd = 1.0
+		_atk_t = 0.4
 		player.take_damage(damage, global_position)
 	return chase_speed
 
 
 func _update_visuals() -> void:
-	var moving := velocity.length() > 3.0
+	var speed := velocity.length()
+	var moving := speed > 3.0
 	var anim_name := "down"
 	if absf(facing.x) > absf(facing.y):
 		anim_name = "side"
 		sprite.flip_h = facing.x < 0.0
 	elif facing.y < 0.0:
 		anim_name = "up"
-	var wanted := ("walk_" if moving else "idle_") + anim_name
+	var prefix := "idle_"
+	var anim_speed := 1.0
+	if _atk_t > 0.0:
+		prefix = "attack_"
+		anim_speed = 0.5                      # el zarpazo dura ~0.4 s
+	elif moving:
+		if kind == "runner" and speed > 40.0:
+			prefix = "run_"                   # el corredor se lanza a todo correr
+			anim_speed = clampf(speed / 70.0, 0.7, 1.4)
+		else:
+			prefix = "walk_"
+			var ref := 36.0 if kind == "tank" else (28.0 if kind == "walker" else 30.0)
+			anim_speed = clampf(speed / ref, 0.5, 1.6)
+	var wanted := SpriteSheets.pick(sprite.sprite_frames, prefix, anim_name)
 	if sprite.animation != wanted:
 		sprite.play(wanted)
+	sprite.speed_scale = anim_speed
 	sprite.modulate = Color(2.2, 2.2, 2.2) if _flash_t > 0.0 else tint
+
+
+## Salpicadura de sangre al recibir un golpe (mas grande al morir).
+func _spawn_blood(amount: int, dir: Vector2) -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+	var p := CPUParticles2D.new()
+	p.one_shot = true
+	p.amount = amount
+	p.lifetime = 0.4
+	p.explosiveness = 1.0
+	p.direction = dir
+	p.spread = 55.0
+	p.initial_velocity_min = 40.0
+	p.initial_velocity_max = 95.0
+	p.gravity = Vector2.ZERO
+	p.damping_min = 110.0
+	p.damping_max = 160.0
+	p.scale_amount_min = 1.0
+	p.scale_amount_max = 2.2
+	p.color = Color("8e1b1b")
+	p.z_index = 4
+	parent.add_child(p)
+	p.global_position = global_position + Vector2(0, -8.0 if kind != "tank" else -14.0)
+	p.emitting = true
+	get_tree().create_timer(0.9).timeout.connect(p.queue_free)
+
+
+## Charco de sangre en el suelo que se desvanece solo.
+func _leave_corpse() -> void:
+	if world == null:
+		return
+	var d := Sprite2D.new()
+	d.texture = PixelArt.make_blood_splat(randi())
+	d.position = world.to_local(global_position)
+	d.rotation_degrees = 90.0 * float(randi() % 4)
+	if kind == "tank":
+		d.scale = Vector2(2.0, 2.0)
+	d.modulate = Color(1, 1, 1, 0.92)
+	world.add_child(d)
+	var tw := d.create_tween()
+	tw.tween_interval(14.0)
+	tw.tween_property(d, "modulate:a", 0.0, 8.0)
+	tw.tween_callback(d.queue_free)
