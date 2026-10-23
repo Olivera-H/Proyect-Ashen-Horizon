@@ -8,7 +8,7 @@ signal toast(text: String)
 
 const DODGE_SPEED := 190.0
 const DODGE_TIME := 0.22
-const ATTACK_RANGE := 28.0
+const ATTACK_RANGE := 42.0
 const ATTACK_DAMAGE := 18.0
 const WEAPON_MAX := 40.0
 const INVENTORY_LIMIT := 8
@@ -367,5 +367,5 @@ func _draw_fx() -> void:
 	var a := lerpf(a0, a1, progress)
 	var origin := Vector2(0, -6)
 	# el tubo ya esta dibujado en el sprite: aqui solo la estela del golpe
-	fx.draw_arc(origin, 17.0, a0, a, 10, Color(1, 1, 1, 0.45), 2.0)
-	fx.draw_arc(origin, 14.0, a0 + 0.2, a - 0.1, 8, Color(1, 1, 1, 0.2), 1.0)
+	fx.draw_arc(origin, 25.0, a0, a, 10, Color(1, 1, 1, 0.45), 2.0)
+	fx.draw_arc(origin, 22.0, a0 + 0.2, a - 0.1, 8, Color(1, 1, 1, 0.2), 1.0)
