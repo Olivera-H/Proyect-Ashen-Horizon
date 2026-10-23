@@ -12,12 +12,12 @@ const SIGHT_DOT := 0.2            # cono de vision frontal
 const LOSE_RANGE := 170.0
 const ATTACK_RANGE := 11.0
 
-@export var max_health := 40.0
+@export var max_health := 80.0
 @export var wander_speed := 14.0
 @export var chase_speed := 36.0
 @export var damage := 12.0
 
-var health := 40.0
+var health := 80.0
 var state := State.WANDER
 var player: Player = null
 var world: World = null
@@ -48,13 +48,13 @@ func configure(k: String) -> void:
 	variant = randi() % 4
 	match k:
 		"runner":  # agil: ve mas lejos y corre casi al ritmo del jugador
-			max_health = 24.0
+			max_health = 48.0
 			wander_speed = 22.0
 			chase_speed = 70.0
 			damage = 9.0
 			sight_mult = 1.35
 		"tank":    # colosal: aguanta mucho, golpea fuerte, casi no retrocede
-			max_health = 220.0
+			max_health = 440.0
 			wander_speed = 10.0
 			chase_speed = 30.0
 			damage = 30.0
