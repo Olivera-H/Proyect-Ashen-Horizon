@@ -7,7 +7,7 @@ extends Node2D
 const W := 128
 const H := 96
 const TS := PixelArt.TILE
-const ZOMBIE_COUNT := 45
+const ZOMBIE_COUNT := 100
 
 const V_ROADS := [20, 52, 84]                 # x inicial de cada calle vertical
 const H_ROADS := [[18, 3], [46, 5], [74, 3]]  # [y inicial, ancho]; la de 5 es la autopista
