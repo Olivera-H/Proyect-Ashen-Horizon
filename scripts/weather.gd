@@ -13,7 +13,7 @@ var _drop_texture: Texture2D
 var _splash_texture: Texture2D
 var _t := 0.0
 
-const DROP_COUNT := 260
+const DROP_COUNT := 70
 const SPLASH_LIFE := 0.35
 
 
