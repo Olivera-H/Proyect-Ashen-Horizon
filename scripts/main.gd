@@ -61,6 +61,7 @@ func _ready() -> void:
 	ents = Node2D.new()
 	ents.y_sort_enabled = true
 	add_child(ents)
+	StreetProps.spawn(world, ents)
 
 	_find_rects()
 	_spawn_player()
@@ -218,6 +219,7 @@ func _update_daylight(delta: float) -> void:
 	var dusk := clampf(1.0 - absf(sun) / 0.3, 0.0, 1.0)
 	canvas_mod.color = col.lerp(DUSK_COLOR, dusk * 0.33)
 	player.light_mult = lerpf(1.0, 0.25, k)
+	get_tree().call_group("night_lights", "set_night", 1.0 - k)
 
 
 func _update_weather(delta: float) -> void:

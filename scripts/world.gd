@@ -10,8 +10,13 @@ const TS := PixelArt.TILE
 const ZOMBIE_COUNT := 200
 
 const V_ROADS := [20, 52, 84]                 # x inicial de cada calle vertical
-const H_ROADS := [[18, 3], [46, 5], [74, 3]]  # [y inicial, ancho]; la de 5 es la autopista
+const H_ROADS := [[18, 3], [46, 8], [74, 3]]  # [y inicial, ancho]; la de 8 es la autopista (4 carriles)
+const HW := 1                                 # indice de la autopista en H_ROADS (la calle del medio)
 const ROAD_W := 3
+const INDUSTRIAL_X := 87                      # desde aqui empieza la zona industrial
+const TERRAIN_PATH := "res://assets/world/terrain.png"
+const ATLAS_COLS := 16
+const ATLAS_ROWS := 6
 
 var tiles := PackedByteArray()
 var solid := PackedByteArray()
@@ -20,6 +25,16 @@ var objectives: Array = []     # {name, pos, main}
 var loot_spots: Array = []     # {pos, kind}
 var zombie_spawns: Array = []  # Vector2
 var start_pos := Vector2.ZERO
+var vari := PackedByteArray()          # variante visual de cada tile (columna/fila en terrain.png)
+var prop_block := PackedByteArray()    # 1 = hay un objeto (arbol, poste...) en este tile
+var marks_r: Array = []                # marcas viales y bordillos: rectangulos en px de mundo
+var marks_c := PackedByteArray()       # color de cada marca (ver StreetMarkings)
+var crosswalk_tiles := {}              # tiles con cebra (sin bordillo al lado)
+var props: Array = []                  # objetos de calle: {kind, pos, flip, mode}
+var decals: Array = []                 # manchas en el suelo: {kind, pos, a, rot}
+var markings: StreetMarkings
+var noise := FastNoiseLite.new()
+var noise2 := FastNoiseLite.new()
 var safe_rect := Rect2()       # refugio asegurado: los zombis pierden el rastro adentro
 
 var rng := RandomNumberGenerator.new()
@@ -56,6 +71,12 @@ func _put(x: int, y: int, t: int) -> void:
 		tiles[y * W + x] = t
 
 
+func _put_v(x: int, y: int, t: int, v: int) -> void:
+	if x >= 0 and y >= 0 and x < W and y < H:
+		tiles[y * W + x] = t
+		vari[y * W + x] = v
+
+
 func _put_solid(x: int, y: int, v: int) -> void:
 	if x >= 0 and y >= 0 and x < W and y < H:
 		solid[y * W + x] = v
@@ -76,14 +97,31 @@ func generate(seed_value: int = 20261021) -> void:
 	tiles.resize(W * H)
 	solid.resize(W * H)
 	solid.fill(0)
+	vari.resize(W * H)
+	vari.fill(0)
+	prop_block.resize(W * H)
+	prop_block.fill(0)
+	noise.seed = seed_value
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.frequency = 0.045
+	noise.fractal_octaves = 3
+	noise2.seed = seed_value + 99
+	noise2.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise2.frequency = 0.07
+	noise2.fractal_octaves = 2
 	_fill_terrain()
 	_lay_roads()
 	_place_buildings()
 	_scatter_details()
 	_pick_start_and_objectives()
+	StreetMarkings.build(self)
+	StreetProps.place(self)
 	_pick_loot_and_spawns()
 	_build_tilemap()
 	_build_colliders()
+	markings = StreetMarkings.new()
+	markings.setup(self)
+	add_child(markings)
 
 
 # ------------------------------------------------------------ generacion
@@ -91,16 +129,127 @@ func generate(seed_value: int = 20261021) -> void:
 func _fill_terrain() -> void:
 	for y in H:
 		for x in W:
-			var t := PixelArt.T_GRASS
-			if x >= 87:
-				t = PixelArt.T_DIRT  # zona industrial
-			elif rng.randf() < 0.06:
-				t = PixelArt.T_GRASS2
-			_put(x, y, t)
+			# transicion irregular entre el cesped y la tierra industrial
+			var dirt := x >= INDUSTRIAL_X
+			if not dirt and x >= INDUSTRIAL_X - 5:
+				dirt = rng.randf() < smoothstep(float(INDUSTRIAL_X - 5), float(INDUSTRIAL_X + 1), float(x) + rng.randf() * 3.0) * 0.8
+			if dirt:
+				_put_v(x, y, PixelArt.T_DIRT, _dirt_variant())
+			else:
+				_put_v(x, y, PixelArt.T_GRASS, _grass_variant(x, y))
 
 
-func _asphalt() -> int:
-	return PixelArt.T_ASPHALT2 if rng.randf() < 0.08 else PixelArt.T_ASPHALT
+## Nivel de sequedad del cesped (0 exuberante .. 1 ceniza): ruido + mas seco hacia el este.
+func dryness(x: int, y: int) -> float:
+	var n := noise.get_noise_2d(float(x), float(y)) * 0.5 + 0.5
+	return clampf(n * 0.75 + float(x) / float(W) * 0.45 - 0.05, 0.0, 0.999)
+
+
+func _grass_variant(x: int, y: int) -> int:
+	# el ruido de sequedad lleva un temblor por casilla: los bordes entre zonas salen irregulares
+	var tier := int(clampf(dryness(x, y) + (rng.randf() - 0.5) * 0.16, 0.0, 0.999) * 5.0)
+	var r := rng.randf()
+	if r < 0.04 and tier <= 1:
+		return 16 + rng.randi_range(0, 3)                       # flores
+	if r < 0.095 and tier <= 3:
+		return 16 + (rng.randi_range(4, 6) if tier <= 1 else rng.randi_range(7, 9))   # hierba alta
+	if r < 0.115:
+		return 16 + 10 + rng.randi_range(0, 1)                  # tierra pisada
+	if r < 0.123 and tier >= 2:
+		return 16 + 12                                          # piedras
+	if r < 0.14 and tier >= 3:
+		return 16 + 13                                          # hojarasca
+	if r < 0.15 and tier <= 1:
+		return 16 + 14                                          # trebol
+	if r < 0.155:
+		return 16 + 15                                          # charco
+	return tier * 3 + rng.randi_range(0, 2)
+
+
+func _dirt_variant() -> int:
+	var r := rng.randf()
+	if r < 0.06:
+		return 4 + rng.randi_range(0, 1)
+	if r < 0.09:
+		return 6 + rng.randi_range(0, 1)
+	if r < 0.12:
+		return 8 + rng.randi_range(0, 1)
+	if r < 0.125:
+		return 10
+	if r < 0.17:
+		return 11 + rng.randi_range(0, 1)
+	if r < 0.19:
+		return 13
+	if r < 0.205:
+		return 14
+	if r < 0.24:
+		return 15
+	return rng.randi_range(0, 3)
+
+
+func _asphalt_var(tracks: bool) -> int:
+	var r := rng.randf()
+	if tracks and r < 0.3:
+		return 13 + rng.randi_range(0, 1)                       # huella de neumaticos
+	r = rng.randf()
+	if r < 0.03:
+		return 6
+	if r < 0.045:
+		return 7
+	if r < 0.075:
+		return 8 + rng.randi_range(0, 1)
+	if r < 0.12:
+		return 4 + rng.randi_range(0, 1)
+	if r < 0.135:
+		return 15
+	if r < 0.185:
+		return 10 + rng.randi_range(0, 1)
+	if r < 0.2:
+		return 12
+	return rng.randi_range(0, 3)
+
+
+func _sidewalk_var() -> int:
+	var r := rng.randf()
+	if r < 0.05:
+		return 4 + rng.randi_range(0, 1)
+	if r < 0.065:
+		return 6
+	if r < 0.085:
+		return 7
+	if r < 0.105:
+		return 8
+	if r < 0.12:
+		return 9
+	if r < 0.14:
+		return 10
+	if r < 0.16:
+		return 11
+	if r < 0.18:
+		return 12
+	if r < 0.22:
+		return 13
+	return rng.randi_range(0, 3)
+
+
+func _put_side(x: int, y: int) -> void:
+	_put_v(x, y, PixelArt.T_SIDEWALK, _sidewalk_var())
+
+
+func _put_road(x: int, y: int, tracks: bool) -> void:
+	var v := _asphalt_var(tracks)
+	var t := PixelArt.T_ASPHALT
+	if v in [4, 5, 6, 7, 15]:
+		t = PixelArt.T_ASPHALT2
+	_put_v(x, y, t, v)
+
+
+## true si x (en tiles) cae en la zona de una interseccion (cruces, lineas de pare).
+func near_cross_x(x: int) -> bool:
+	for vx in V_ROADS:
+		if x >= vx - 2 and x <= vx + 4:
+			return true
+	return false
 
 
 func _lay_roads() -> void:
@@ -108,38 +257,31 @@ func _lay_roads() -> void:
 	for vx in V_ROADS:
 		for y in H:
 			for x in range(vx - 1, vx + ROAD_W + 1):
-				_put(x, y, PixelArt.T_SIDEWALK)
+				_put_side(x, y)
 	for hr in H_ROADS:
 		for y in range(hr[0] - 1, hr[0] + hr[1] + 1):
 			for x in W:
-				_put(x, y, PixelArt.T_SIDEWALK)
-	# asfalto
+				_put_side(x, y)
+	# asfalto (las lineas, cebras y bordillos los pinta StreetMarkings)
 	for vx in V_ROADS:
 		for y in H:
 			for x in range(vx, vx + ROAD_W):
-				_put(x, y, _asphalt())
-	for hr in H_ROADS:
-		var mid: int = hr[0] + int(hr[1] / 2.0)
+				_put_road(x, y, false)
+	for hi in H_ROADS.size():
+		var hr: Array = H_ROADS[hi]
 		for y in range(hr[0], hr[0] + hr[1]):
 			for x in W:
-				var t := _asphalt()
-				var on_vroad := false
-				for vx in V_ROADS:
-					if x >= vx and x < vx + ROAD_W:
-						on_vroad = true
-				if y == mid and not on_vroad and x % 4 < 3:
-					t = PixelArt.T_ROAD_LINE
-				_put(x, y, t)
-	# barricadas en la autopista: dejan un solo carril libre
-	var hw: Array = H_ROADS[1]
+				_put_road(x, y, hi == HW and not near_cross_x(x))
+	# barricadas en la autopista: dejan un solo carril libre (2 tiles)
+	var hw: Array = H_ROADS[HW]
 	var gap_low := true
 	for bx in [30, 62, 96]:
 		for y in range(hw[0], hw[0] + hw[1]):
-			var is_gap: bool = (y == hw[0] + hw[1] - 1) if gap_low else (y == hw[0])
+			var is_gap: bool = (y >= hw[0] + hw[1] - 2) if gap_low else (y < hw[0] + 2)
 			if is_gap:
 				continue
 			for x in range(bx, bx + 2):
-				_put(x, y, PixelArt.T_RUBBLE)
+				_put_v(x, y, PixelArt.T_RUBBLE, rng.randi_range(0, 7))
 				_put_solid(x, y, 1)
 		gap_low = not gap_low
 
@@ -164,7 +306,7 @@ func _block_ranges() -> Array:
 
 func _place_buildings() -> void:
 	for block in _block_ranges():
-		var industrial: bool = block.position.x >= 87
+		var industrial: bool = block.position.x >= INDUSTRIAL_X
 		var attempts := 9 if not industrial else 5
 		for i in attempts:
 			var w := rng.randi_range(10, 18) if industrial else rng.randi_range(6, 11)
@@ -226,7 +368,7 @@ func _scatter_details() -> void:
 		var y := rng.randi() % H
 		var t: int = tiles[y * W + x]
 		if solid[y * W + x] == 0 and (t == PixelArt.T_ASPHALT or t == PixelArt.T_ASPHALT2):
-			_put(x, y, PixelArt.T_RUBBLE)
+			_put_v(x, y, PixelArt.T_RUBBLE, rng.randi_range(8, 15))
 
 
 func _center_px(r: Rect2i) -> Vector2:
@@ -287,7 +429,7 @@ func _pick_loot_and_spawns() -> void:
 	while street < 25 and guard < 600:
 		guard += 1
 		var t := Vector2i(rng.randi() % W, rng.randi() % H)
-		if not is_solid_tile(t) and tile_id(t) != PixelArt.T_FLOOR:
+		if not is_solid_tile(t) and tile_id(t) != PixelArt.T_FLOOR and prop_block[t.y * W + t.x] == 0:
 			loot_spots.append({"pos": tile_center(t), "kind": _random_kind()})
 			street += 1
 	var count := 0
@@ -296,7 +438,7 @@ func _pick_loot_and_spawns() -> void:
 	while count < ZOMBIE_COUNT and guard < 2000:
 		guard += 1
 		var t := Vector2i(rng.randi() % W, rng.randi() % H)
-		if is_solid_tile(t):
+		if is_solid_tile(t) or prop_block[t.y * W + t.x] == 1:
 			continue
 		if Vector2(t - start_t).length() < 22.0:
 			continue
@@ -305,6 +447,25 @@ func _pick_loot_and_spawns() -> void:
 
 
 # ----------------------------------------------------------- construccion
+
+## Celda del atlas nuevo (terrain.png) para un tile logico; (-1, -1) si usa el atlas basico.
+func _terrain_cell(t: int, v: int) -> Vector2i:
+	var row := -1
+	match t:
+		PixelArt.T_ASPHALT, PixelArt.T_ASPHALT2:
+			row = 0
+		PixelArt.T_SIDEWALK:
+			row = 1
+		PixelArt.T_GRASS, PixelArt.T_GRASS2:
+			row = 2
+		PixelArt.T_DIRT:
+			row = 4
+		PixelArt.T_RUBBLE:
+			row = 5
+	if row < 0:
+		return Vector2i(-1, -1)
+	return Vector2i(v & 15, row + (v >> 4))
+
 
 func _build_tilemap() -> void:
 	var ts := TileSet.new()
@@ -315,11 +476,30 @@ func _build_tilemap() -> void:
 	for i in PixelArt.T_COUNT:
 		src.create_tile(Vector2i(i, 0))
 	ts.add_source(src, 0)
+	# atlas de terreno (asfalto, aceras, cesped, tierra); si falta se usa el basico
+	var terrain: Texture2D = null
+	if ResourceLoader.exists(TERRAIN_PATH):
+		terrain = load(TERRAIN_PATH)
+	if terrain != null:
+		var src2 := TileSetAtlasSource.new()
+		src2.texture = terrain
+		src2.texture_region_size = Vector2i(TS, TS)
+		for ry in ATLAS_ROWS:
+			for rx in ATLAS_COLS:
+				src2.create_tile(Vector2i(rx, ry))
+		ts.add_source(src2, 1)
 	_layer = TileMapLayer.new()
 	_layer.tile_set = ts
 	for y in H:
 		for x in W:
-			_layer.set_cell(Vector2i(x, y), 0, Vector2i(tiles[y * W + x], 0))
+			var i := y * W + x
+			var cell := Vector2i(-1, -1)
+			if terrain != null:
+				cell = _terrain_cell(tiles[i], vari[i])
+			if cell.x >= 0:
+				_layer.set_cell(Vector2i(x, y), 1, cell)
+			else:
+				_layer.set_cell(Vector2i(x, y), 0, Vector2i(tiles[i], 0))
 	add_child(_layer)
 
 

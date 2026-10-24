@@ -59,7 +59,12 @@ Haz clic en el juego antes de usar el teclado. Cuando termines, detén o elimina
 - **Historia:** 6 notas repartidas por el mapa y **eventos aleatorios** (estruendos que mueven a los infectados, cajas de suministros marcadas en el minimapa).
 - **Meta:** llegar al Laboratorio Horizonte.
 
-Los **personajes y zombis** usan hojas de sprites (`assets/sprites/`) con contorno, sombreado y animaciones de reposo, caminar, correr y atacar en cuatro direcciones. Las genera `tools/gen_sprites.py` (cambia colores o formas y vuelve a ejecutarlo), o puedes abrirlas en Aseprite y pintarlas a mano respetando el tamaño de cuadro y el orden de filas. El resto del arte (tiles, objetos) sigue siendo provisional y se genera por código en `pixel_art.gd`.
+Los **personajes y zombis** usan hojas de sprites (`assets/sprites/`) con contorno, sombreado y animaciones de reposo, caminar, correr y atacar en cuatro direcciones. Las genera `tools/gen_sprites.py` (cambia colores o formas y vuelve a ejecutarlo), o puedes abrirlas en Aseprite y pintarlas a mano respetando el tamaño de cuadro y el orden de filas. Los iconos del HUD, la fuente y las luces siguen siendo provisionales (`pixel_art.gd`).
+
+Las **calles, aceras y el césped** tienen su propio atlas (`assets/world/terrain.png`, generado por `tools/gen_terrain.py`): asfalto con grietas, baches y huellas, aceras con bordillo, césped en cinco niveles de sequedad (de exuberante a ceniza) y escombros para las barricadas. La **calle del medio es una autopista de 4 carriles** (doble línea amarilla, líneas blancas discontinuas, flechas, cebras y líneas de pare en cada cruce) con **semáforos** (la mayoría apagados; algunos parpadean en ámbar o rojo y brillan de noche), señales de pare, límite de velocidad, peatones y carteles verdes (Horizonte / Industrial), postes de luz, autos abandonados, conos, hidrantes, basureros, alcantarillas, árboles secos, arbustos y rocas (`tools/gen_props.py`). Los autos solo bloquean los carriles exteriores: los dos del centro siempre se pueden recorrer.
+
+![Calles de día](docs/captura-calles.png)
+![Autopista de noche](docs/captura-calles-noche.png)
 
 ![Personajes y zombis](docs/captura-personajes.png)
 
@@ -84,8 +89,13 @@ scripts/
   input_setup.gd        Acciones de entrada (teclado)
   pixel_art.gd          Tiles, iconos y luces generados por código (arte provisional)
   sprite_sheets.gd      Carga las hojas de sprites y arma las animaciones
+  street_markings.gd    Marcas viales y bordillos (cebras, líneas de carril y de pare, flechas)
+  street_props.gd       Semáforos, señales, postes, autos, vegetación y manchas del suelo (colocación y colisiones)
 tools/web.sh            Exporta a Web y lo sirve (para Codespaces)
 tools/gen_sprites.py    Genera las hojas de sprites (requiere Pillow)
+tools/gen_terrain.py    Genera el atlas de asfalto, aceras, césped y escombros (requiere Pillow)
+tools/gen_props.py      Genera los objetos de calle: semáforos, señales, autos, árboles... (requiere Pillow)
+assets/world/           terrain.png y props/ (objetos de calle)
 assets/ui/              Iconos del HUD (vida, estamina, hambre, sed, infección, mapa); originales en assets/ui/originales
 assets/sprites/         Hojas de sprites de personajes y zombis
 assets/fonts/           Fuente Pixelify Sans (licencia OFL incluida)

@@ -144,12 +144,28 @@ func _paint_tile(img: Image, x: int, y: int) -> void:
 			img.fill_rect(full, COL_VOID)
 
 
+## Lineas amarillas de las calles (las marcas viales se dibujan aparte del mapa de tiles).
+func _paint_road_lines(img: Image) -> void:
+	var k := float(S) / float(World.TS)
+	for i in world.marks_r.size():
+		var c: int = world.marks_c[i]
+		if c != StreetMarkings.MK_YELLOW and c != StreetMarkings.MK_YELLOW_OLD:
+			continue
+		var r: Rect2 = world.marks_r[i]
+		var x := int(r.position.x * k) + PAD * S
+		var y := int(r.position.y * k) + PAD * S
+		var rw := maxi(1, int(round(r.size.x * k)))
+		var rh := maxi(1, int(round(r.size.y * k)))
+		img.fill_rect(Rect2i(x, y, rw, rh), COL_LINE if c == StreetMarkings.MK_YELLOW else COL_LINE.darkened(0.25))
+
+
 func _render_base() -> ImageTexture:
 	var img := Image.create((World.W + PAD * 2) * S, (World.H + PAD * 2) * S, false, Image.FORMAT_RGBA8)
 	img.fill(COL_VOID)
 	for y in World.H:
 		for x in World.W:
 			_paint_tile(img, x, y)
+	_paint_road_lines(img)
 	# borde del mundo
 	var edge := Color("4a5060")
 	var w := World.W * S
