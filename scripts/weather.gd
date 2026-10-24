@@ -66,7 +66,7 @@ func _draw() -> void:
 			if _drop_texture != null:
 				draw_texture_rect(_drop_texture, Rect2(d, Vector2(5, 7)), false, Color(1, 1, 1, 0.65))
 			else:
-				draw_line(d, d + Vector2(-2.5, 7.0), Color(0.6, 0.9, 0.45, 0.55), 1.0)
+				draw_line(d, d + Vector2(-4.5, 9.0), Color(0.6, 0.9, 0.45, 0.55), 1.0)
 		for splash in _splashes:
 			if _splash_texture != null:
 				var alpha := clampf(splash[1] / 0.22, 0.0, 1.0)
