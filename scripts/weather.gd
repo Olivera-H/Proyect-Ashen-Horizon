@@ -14,7 +14,7 @@ var _splash_texture: Texture2D
 var _t := 0.0
 
 const DROP_COUNT := 50
-const SPLASH_LIFE := 0.35
+const SPLASH_LIFE := 0.25
 
 
 func _ready() -> void:
