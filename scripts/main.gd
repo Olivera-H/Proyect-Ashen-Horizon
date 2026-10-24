@@ -44,6 +44,9 @@ var _event_t := 70.0
 var _in_refuge := false
 var _warned_toxic := false
 var _drop_goal := {}
+var _drop_flying := false
+var _drop_landed := false
+var _drop_crate: Sprite2D
 
 
 func _ready() -> void:
@@ -291,11 +294,15 @@ func _check_goal() -> void:
 		_state = "won"
 		_end_t = 1.5
 		hud.end_kind = "won"
-	if not _drop_goal.is_empty():
+	if not _drop_goal.is_empty() and _drop_landed:
 		var gp: Vector2 = _drop_goal["pos"]
 		if player.global_position.distance_to(gp) < 24.0:
 			world.objectives.erase(_drop_goal)
 			_drop_goal = {}
+			_drop_landed = false
+			if _drop_crate != null and is_instance_valid(_drop_crate):
+				_drop_crate.queue_free()
+				_drop_crate = null
 			hud.toast("Recogiste la caja de suministros.", 3.0)
 
 
@@ -330,18 +337,40 @@ func _event_noise() -> void:
 
 
 func _event_supply_drop() -> void:
+	if _drop_flying:
+		return
 	for attempt in 40:
 		var pos := player.global_position + Vector2.from_angle(randf() * TAU) * randf_range(180.0, 320.0)
 		var t := world.to_tile(pos)
 		if not world.in_bounds(t) or world.is_solid_tile(t):
 			continue
 		var c := world.tile_center(t)
-		_add_pickup(c, "bandage", "")
-		_add_pickup(c + Vector2(6, 0), "scrap", "")
-		_add_pickup(c + Vector2(-6, 0), "water", "")
 		if not _drop_goal.is_empty():
 			world.objectives.erase(_drop_goal)
-		_drop_goal = {"name": "Suministros", "pos": c, "main": false}
-		world.objectives.append(_drop_goal)
-		hud.toast("Cayó una caja de suministros cerca. Mírala en el minimapa.", 5.0)
+			_drop_goal = {}
+		if _drop_crate != null and is_instance_valid(_drop_crate):
+			_drop_crate.queue_free()
+			_drop_crate = null
+		_drop_flying = true
+		var drop := SupplyDrop.new()
+		world.add_child(drop)
+		drop.setup(c, ents)
+		drop.released.connect(_on_supply_released.bind(c))
+		drop.landed.connect(_on_supply_landed.bind(drop, c))
+		hud.toast("Se oye un avión de carga sobrevolando la zona...", 4.0)
 		return
+
+
+func _on_supply_released(c: Vector2) -> void:
+	_drop_goal = {"name": "Suministros", "pos": c, "main": false}
+	world.objectives.append(_drop_goal)
+	hud.toast("¡Soltaron una caja con paracaídas! Mírala en el minimapa.", 5.0)
+
+
+func _on_supply_landed(drop: SupplyDrop, c: Vector2) -> void:
+	_drop_flying = false
+	_drop_crate = drop.crate
+	_add_pickup(c, "bandage", "")
+	_add_pickup(c + Vector2(6, 0), "scrap", "")
+	_add_pickup(c + Vector2(-6, 0), "water", "")
+	_drop_landed = true

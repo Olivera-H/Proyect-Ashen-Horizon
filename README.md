@@ -56,7 +56,7 @@ Haz clic en el juego antes de usar el teclado. Cuando termines, detén o elimina
 - **Mundo:** ciudad procedural con calles, edificios con puerta, autopista con barricadas y zona industrial al este.
 - **Atmósfera:** ciclo día/noche con linterna, lluvia ácida y niebla tóxica (dañan al aire libre; los edificios protegen).
 - **Refugio:** al entrar se guarda el progreso (punto de reaparición), recuperas vida y los zombis pierden tu rastro.
-- **Historia:** 6 notas repartidas por el mapa y **eventos aleatorios** (estruendos que mueven a los infectados, cajas de suministros marcadas en el minimapa).
+- **Historia:** 6 notas repartidas por el mapa y **eventos aleatorios** (estruendos que mueven a los infectados y entregas aéreas: un avión de carga cruza el cielo, suelta una caja con paracaídas y queda marcada en el minimapa).
 - **Meta:** llegar al Laboratorio Horizonte.
 
 Los **personajes y zombis** usan hojas de sprites (`assets/sprites/`) con contorno, sombreado y animaciones de reposo, caminar, correr y atacar en cuatro direcciones. Las genera `tools/gen_sprites.py` (cambia colores o formas y vuelve a ejecutarlo), o puedes abrirlas en Aseprite y pintarlas a mano respetando el tamaño de cuadro y el orden de filas. Los iconos del HUD, la fuente y las luces siguen siendo provisionales (`pixel_art.gd`).
@@ -89,12 +89,14 @@ scripts/
   input_setup.gd        Acciones de entrada (teclado)
   pixel_art.gd          Tiles, iconos y luces generados por código (arte provisional)
   sprite_sheets.gd      Carga las hojas de sprites y arma las animaciones
+  supply_drop.gd        Entrega aérea: avión, caja y paracaídas
   street_markings.gd    Marcas viales y bordillos (cebras, líneas de carril y de pare, flechas)
   street_props.gd       Semáforos, señales, postes, autos, vegetación y manchas del suelo (colocación y colisiones)
 tools/web.sh            Exporta a Web y lo sirve (para Codespaces)
 tools/gen_sprites.py    Genera las hojas de sprites (requiere Pillow)
 tools/gen_terrain.py    Genera el atlas de asfalto, aceras, césped y escombros (requiere Pillow)
 tools/gen_props.py      Genera los objetos de calle: semáforos, señales, autos, árboles... (requiere Pillow)
+assets/supply/          Avión, caja y paracaídas de las entregas aéreas (originales en originales/)
 assets/world/           terrain.png y props/ (objetos de calle)
 assets/ui/              Iconos del HUD (vida, estamina, hambre, sed, infección, mapa); originales en assets/ui/originales
 assets/sprites/         Hojas de sprites de personajes y zombis
