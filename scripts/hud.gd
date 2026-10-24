@@ -93,10 +93,10 @@ func _draw_gear() -> void:
 
 
 func _draw_clock(vs: Vector2) -> void:
-	var total := int(clock * 1440.0)
-	var hh := floori(total / 60.0)
-	var mm := total % 60
-	_txt(Vector2(0, 18.0), "%02d:%02d" % [hh, mm], 14, Color(0.95, 0.95, 0.95), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
+	var hour_24 := floori(int(clock * 1440.0) / 60.0) % 24
+	var hour_12 := (hour_24 % 12) if (hour_24 % 12) != 0 else 12
+	var period := "AM" if hour_24 < 12 else "PM"
+	_txt(Vector2(0, 18.0), "%d %s" % [hour_12, period], 14, Color(0.95, 0.95, 0.95), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
 	if warning != "":
 		var pulse := 0.65 + 0.35 * sin(_t * 6.0)
 		_txt(Vector2(0, 31.0), warning, 11, Color(1.0, 0.45, 0.3, pulse), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
