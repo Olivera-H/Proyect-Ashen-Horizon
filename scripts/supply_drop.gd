@@ -6,7 +6,7 @@ extends Node2D
 signal released
 signal landed
 
-const PLANE_SPEED := 100.0
+const PLANE_SPEED := 150.0
 const ALTITUDE := 190.0        # altura (en pixeles) desde la que se suelta la caja
 const FALL_TIME := 5.0
 const PLANE_TEX := "res://assets/supply/plane.png"
