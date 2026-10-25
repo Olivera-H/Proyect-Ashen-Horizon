@@ -293,6 +293,11 @@ static func make_icon(kind: String) -> ImageTexture:
 			_rect(img, 1, 1, 6, 6, Color("ecebe6"))
 			_rect(img, 3, 2, 2, 4, Color("c0392b"))
 			_rect(img, 2, 3, 4, 2, Color("c0392b"))
+		"manual":
+			_rect(img, 1, 1, 6, 6, Color("3d6b4a"))
+			_rect(img, 1, 1, 1, 6, Color("2a4a33"))
+			_rect(img, 3, 2, 3, 1, Color("e0b030"))
+			_rect(img, 3, 4, 2, 1, Color("e8e2cf"))
 		"note":
 			_rect(img, 1, 0, 6, 8, Color("e8e2cf"))
 			_rect(img, 2, 2, 4, 1, Color("6b6456"))

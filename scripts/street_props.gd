@@ -38,6 +38,7 @@ const KINDS := {
 	"bush_dry": {"hit": [Rect2(-6, -6, 12, 7)]},
 	"rock_a": {"hit": [Rect2(-4, -5, 8, 6)]},
 	"rock_b": {"hit": [Rect2(-5, -6, 10, 7)]},
+	"mailbox": {"hit": [Rect2(-2, -3, 4, 4)]},
 }
 const CARS := ["car_sedan_red", "car_sedan_blue", "car_taxi", "car_van_white", "car_wagon_green"]
 const LIGHT_COLORS := {
@@ -87,6 +88,7 @@ static func place(w: World) -> void:
 	_wrecks(w)
 	_barricade_cones(w)
 	_furniture(w)
+	_yards(w)
 	_vegetation(w, near)
 	_decals(w)
 
@@ -268,6 +270,24 @@ static func _furniture(w: World) -> void:
 		elif cans < 16:
 			cans += 1
 			_add(w, "trash_can", pos)
+
+
+## Jardin delantero de cada casa: buzon junto al caminito y arbustos a los lados del porche.
+static func _yards(w: World) -> void:
+	for b in w.buildings:
+		var r: Rect2i = b["rect"]
+		var door: Vector2i = b["door"]
+		var y := r.end.y
+		var mb := Vector2i(door.x - 2, y)
+		if _tile_ok(w, mb, [PixelArt.T_GRASS, PixelArt.T_GRASS2, PixelArt.T_DIRT]):
+			_add(w, "mailbox", Vector2((mb.x + 0.5) * TS, (mb.y + 0.9) * TS))
+		for sx in [r.position.x + 2, r.end.x - 3]:
+			if absi(sx - door.x) < 4:
+				continue
+			var t := Vector2i(sx, y)
+			if w.rng.randf() < 0.8 and _tile_ok(w, t, [PixelArt.T_GRASS, PixelArt.T_GRASS2, PixelArt.T_DIRT]):
+				var dry := w.dryness(t.x, t.y)
+				_add(w, "bush_dry" if dry > 0.55 else "bush_green", Vector2((t.x + 0.5) * TS, (t.y + 0.9) * TS), w.rng.randf() < 0.5)
 
 
 static func _free3(w: World, x: int, y: int) -> bool:

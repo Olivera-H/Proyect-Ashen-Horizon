@@ -16,6 +16,10 @@ static func register() -> void:
 	_bind("flashlight", [KEY_F])
 	_bind("toggle_map", [KEY_M])
 	_bind("zoom_map", [KEY_N])
+	_bind("slot1", [KEY_1])
+	_bind("slot2", [KEY_2])
+	_bind("slot3", [KEY_3])
+	_bind("toggle_bag", [KEY_B, KEY_TAB])
 
 
 static func _bind(action: String, keys: Array) -> void:

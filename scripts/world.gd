@@ -35,6 +35,7 @@ var decals: Array = []                 # manchas en el suelo: {kind, pos, a, rot
 var markings: StreetMarkings
 var noise := FastNoiseLite.new()
 var noise2 := FastNoiseLite.new()
+var fence := {}                        # cercado del refugio: {ring: Rect2i, gate: [x0, x1]}
 var safe_rect := Rect2()       # refugio asegurado: los zombis pierden el rastro adentro
 
 var rng := RandomNumberGenerator.new()
@@ -304,62 +305,97 @@ func _block_ranges() -> Array:
 	return blocks
 
 
+## Vecindarios: en cada manzana, una fila de casas con la fachada hacia la calle del sur,
+## separadas por patios, con un caminito de la puerta hasta la acera.
 func _place_buildings() -> void:
+	var residential := ["cabana", "casa", "chalet"]
 	for block in _block_ranges():
 		var industrial: bool = block.position.x >= INDUSTRIAL_X
-		var attempts := 9 if not industrial else 5
-		for i in attempts:
-			var w := rng.randi_range(10, 18) if industrial else rng.randi_range(6, 11)
-			var h := rng.randi_range(8, 14) if industrial else rng.randi_range(5, 9)
-			if w + 2 >= block.size.x or h + 2 >= block.size.y:
+		var kinds: Array = ["taller"] if industrial else residential
+		var x: int = block.position.x + rng.randi_range(1, 3)
+		var count := 0
+		var guard := 0
+		while guard < 8:
+			guard += 1
+			var options: Array = []
+			for k in kinds:
+				var d: Dictionary = HouseData.TYPES[k]
+				if x + d["w"] <= block.end.x and d["h"] + 4 <= block.size.y:
+					options.append(k)
+			if options.is_empty():
+				break
+			if count > 0 and rng.randf() < 0.18:
+				x += rng.randi_range(4, 7)   # un lote vacio
 				continue
-			var x := rng.randi_range(block.position.x + 1, block.position.x + block.size.x - w - 1)
-			var y := rng.randi_range(block.position.y + 1, block.position.y + block.size.y - h - 1)
-			var r := Rect2i(x, y, w, h)
-			var ok := true
-			for b in buildings:
-				if r.grow(1).intersects(b["rect"]):
-					ok = false
-					break
-			if ok:
-				_build_house(r)
+			var kind: String = options[rng.randi() % options.size()]
+			var d: Dictionary = HouseData.TYPES[kind]
+			var bottom: int = block.end.y - rng.randi_range(3, 4)      # patio delantero
+			var y: int = bottom - d["h"] + 1
+			if y < block.position.y:
+				y = block.position.y
+			_build_house(Vector2i(x, y), kind, block)
+			count += 1
+			x += d["w"] + rng.randi_range(3, 5)
 
 
-func _build_house(r: Rect2i) -> void:
-	for y in range(r.position.y, r.end.y):
-		for x in range(r.position.x, r.end.x):
-			var edge := x == r.position.x or y == r.position.y or x == r.end.x - 1 or y == r.end.y - 1
-			if edge:
-				_put(x, y, PixelArt.T_WALL)
-				_put_solid(x, y, 1)
-			else:
-				_put(x, y, PixelArt.T_FLOOR)
-	# puerta de 2 tiles en un lado al azar
-	var side := rng.randi() % 4
-	var door := Vector2i.ZERO
-	match side:
-		0:  # arriba
-			door = Vector2i(rng.randi_range(r.position.x + 1, r.end.x - 3), r.position.y)
-			for dx in 2:
-				_open_door(door.x + dx, door.y)
-		1:  # abajo
-			door = Vector2i(rng.randi_range(r.position.x + 1, r.end.x - 3), r.end.y - 1)
-			for dx in 2:
-				_open_door(door.x + dx, door.y)
-		2:  # izquierda
-			door = Vector2i(r.position.x, rng.randi_range(r.position.y + 1, r.end.y - 3))
-			for dy in 2:
-				_open_door(door.x, door.y + dy)
-		_:  # derecha
-			door = Vector2i(r.end.x - 1, rng.randi_range(r.position.y + 1, r.end.y - 3))
-			for dy in 2:
-				_open_door(door.x, door.y + dy)
-	buildings.append({"rect": r, "door": door})
-
-
-func _open_door(x: int, y: int) -> void:
-	_put(x, y, PixelArt.T_FLOOR)
-	_put_solid(x, y, 0)
+func _build_house(pos: Vector2i, kind: String, block: Rect2i) -> void:
+	var d: Dictionary = HouseData.TYPES[kind]
+	var w: int = d["w"]
+	var h: int = d["h"]
+	var rows: Array = d["rows"]
+	var floors: Array = []
+	for ly in h:
+		var row: String = rows[ly]
+		for lx in w:
+			var x := pos.x + lx
+			var y := pos.y + ly
+			match row[lx]:
+				"#":
+					_put(x, y, PixelArt.T_WALL)
+					_put_solid(x, y, 1)
+				"f":
+					_put(x, y, PixelArt.T_FLOOR)
+					_put_solid(x, y, 0)
+					floors.append(Vector2i(x, y))
+				"p":
+					_put(x, y, PixelArt.T_FLOOR)
+					_put_solid(x, y, 0)
+				_:
+					pass
+	var door := Vector2i(pos.x + int(d["door_x"]), pos.y + h - 1)
+	# caminito desde la escalera del porche hasta la acera
+	var py := pos.y + h
+	while py <= block.end.y + 1 and py < H:
+		var tid: int = tiles[py * W + door.x]
+		if tid == PixelArt.T_SIDEWALK or tid == PixelArt.T_ASPHALT or tid == PixelArt.T_ASPHALT2:
+			break
+		_put_side(door.x, py)
+		_put_side(door.x + 1, py)
+		for dx in range(-1, 3):   # el caminito y sus lados quedan libres de postes, hidrantes, etc.
+			if door.x + dx >= 0 and door.x + dx < W:
+				prop_block[py * W + door.x + dx] = 1
+		py += 1
+	# caja de los pisos caminables y su centro
+	var fmin := Vector2i(W, H)
+	var fmax := Vector2i(-1, -1)
+	var mean := Vector2.ZERO
+	for t in floors:
+		fmin = Vector2i(mini(fmin.x, t.x), mini(fmin.y, t.y))
+		fmax = Vector2i(maxi(fmax.x, t.x), maxi(fmax.y, t.y))
+		mean += Vector2(t)
+	mean /= float(maxi(1, floors.size()))
+	var center_t: Vector2i = floors[0]
+	var best := INF
+	for t in floors:
+		var dd := Vector2(t).distance_to(mean)
+		if dd < best:
+			best = dd
+			center_t = t
+	var inner := Rect2(Vector2(fmin) * float(TS), Vector2(fmax - fmin + Vector2i.ONE) * float(TS))
+	buildings.append({
+		"rect": Rect2i(pos, Vector2i(w, h)), "door": door, "kind": kind, "floors": floors,
+		"center": tile_center(center_t), "inner": inner, "block": block,
+	})
 
 
 func _scatter_details() -> void:
@@ -371,10 +407,6 @@ func _scatter_details() -> void:
 			_put_v(x, y, PixelArt.T_RUBBLE, rng.randi_range(8, 15))
 
 
-func _center_px(r: Rect2i) -> Vector2:
-	return (Vector2(r.position) + Vector2(r.size) * 0.5) * TS
-
-
 func _pick_start_and_objectives() -> void:
 	start_pos = tile_center(Vector2i(21, 19))
 	if buildings.is_empty():
@@ -384,25 +416,69 @@ func _pick_start_and_objectives() -> void:
 		var r: Rect2i = b["rect"]
 		if r.position.x > lab["rect"].position.x or (r.position.x == lab["rect"].position.x and r.size.x * r.size.y > lab["rect"].size.x * lab["rect"].size.y):
 			lab = b
-	objectives.append({"name": "Laboratorio Horizonte", "pos": _center_px(lab["rect"]), "main": true})
+	objectives.append({"name": "Laboratorio Horizonte", "pos": lab["center"], "main": true})
 
 	var refuge: Dictionary = buildings[0]
 	var hospital: Dictionary = buildings[0]
 	var best_refuge := INF
 	var best_hosp := INF
 	for b in buildings:
-		var c := _center_px(b["rect"])
+		var c: Vector2 = b["center"]
 		var d1 := c.distance_to(Vector2(30, 30) * TS)
 		var d2 := c.distance_to(Vector2(68, 62) * TS)
-		if d1 < best_refuge:
+		if d1 < best_refuge and _ring_clear(b):
 			best_refuge = d1
 			refuge = b
 		if d2 < best_hosp:
 			best_hosp = d2
 			hospital = b
-	objectives.append({"name": "Refugio", "pos": _center_px(refuge["rect"]), "main": false})
+	objectives.append({"name": "Refugio", "pos": refuge["center"], "main": false})
+	_build_fence(refuge)
 	if hospital != refuge:
-		objectives.append({"name": "Hospital", "pos": _center_px(hospital["rect"]), "main": false})
+		objectives.append({"name": "Hospital", "pos": hospital["center"], "main": false})
+
+
+## Anillo del cercado: 3 tiles de margen a los lados y arriba, y el patio delantero abajo.
+func _fence_ring(b: Dictionary) -> Rect2i:
+	var r: Rect2i = b["rect"]
+	return Rect2i(r.position.x - 3, r.position.y - 3, r.size.x + 6, r.size.y + 3 + 3)
+
+
+func _ring_clear(b: Dictionary) -> bool:
+	var ring := _fence_ring(b)
+	var blk: Rect2i = b["block"]
+	if not blk.encloses(ring):
+		return false
+	for y in range(ring.position.y, ring.end.y):
+		for x in range(ring.position.x, ring.end.x):
+			if _is_road(x, y) or (solid[y * W + x] == 1 and not b["rect"].has_point(Vector2i(x, y))):
+				return false
+	for o in buildings:
+		if o != b and ring.intersects(o["rect"]):
+			return false
+	return true
+
+
+func _build_fence(b: Dictionary) -> void:
+	if not _ring_clear(b):
+		return
+	var ring := _fence_ring(b)
+	var door: Vector2i = b["door"]
+	var gx0 := door.x - 1
+	var gx1 := door.x + 2
+	var cells: Array = []
+	for x in range(ring.position.x, ring.end.x):
+		for y in [ring.position.y, ring.end.y - 1]:
+			if y == ring.end.y - 1 and x >= gx0 and x <= gx1:
+				continue
+			cells.append(Vector2i(x, y))
+	for y in range(ring.position.y + 1, ring.end.y - 1):
+		for x in [ring.position.x, ring.end.x - 1]:
+			cells.append(Vector2i(x, y))
+	for c in cells:
+		_put_solid(c.x, c.y, 1)
+		prop_block[c.y * W + c.x] = 1
+	fence = {"ring": ring, "gate": [gx0, gx1], "cells": cells}
 
 
 func _random_kind() -> String:
@@ -418,12 +494,20 @@ func _random_kind() -> String:
 
 func _pick_loot_and_spawns() -> void:
 	for b in buildings:
-		var inner: Rect2i = b["rect"].grow(-1)
-		if inner.size.x <= 0 or inner.size.y <= 0:
+		var fl: Array = b["floors"]
+		if fl.is_empty():
 			continue
-		for i in rng.randi_range(1, 3):
-			var t := Vector2i(rng.randi_range(inner.position.x, inner.end.x - 1), rng.randi_range(inner.position.y, inner.end.y - 1))
+		for i in rng.randi_range(2, 4):
+			var t: Vector2i = fl[rng.randi() % fl.size()]
 			loot_spots.append({"pos": tile_center(t), "kind": _random_kind()})
+	# manuales de supervivencia (ensenan una habilidad): uno en cada una de 5 casas al azar
+	var pool: Array = buildings.duplicate()
+	for i in mini(5, pool.size()):
+		var bi := rng.randi() % pool.size()
+		var fl: Array = pool[bi]["floors"]
+		pool.remove_at(bi)
+		if not fl.is_empty():
+			loot_spots.append({"pos": tile_center(fl[rng.randi() % fl.size()]), "kind": "manual"})
 	var street := 0
 	var guard := 0
 	while street < 25 and guard < 600:

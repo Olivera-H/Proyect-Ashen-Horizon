@@ -1,0 +1,57 @@
+# GENERADO por tools/gen_houses.py - no editar a mano.
+# Mapa de tiles de cada casa: '.' libre, '#' muro, 'f' piso interior, 'p' camino de la puerta.
+class_name HouseData
+
+const TYPES := {
+	"cabana": {"w": 18, "h": 10, "door_x": 8, "rows": [
+		"..........##......",
+		"##############.#..",
+		"##################",
+		"#ffffffffffff#####",
+		"#ffffffffffff#####",
+		"#ffffffffffff#####",
+		"########pp########",
+		"########pp########",
+		"########pp########",
+		"....####pp####....",
+	]},
+	"casa": {"w": 20, "h": 11, "door_x": 9, "rows": [
+		"...##...............",
+		"###################.",
+		"####################",
+		"#ffffffffffffff#####",
+		"#ffffffffffffff#####",
+		"#ffffffffffffff#####",
+		"#ffffffffffffff#####",
+		"#########pp#########",
+		"#########pp#########",
+		"#########pp#########",
+		"....#####pp####.....",
+	]},
+	"chalet": {"w": 12, "h": 10, "door_x": 5, "rows": [
+		"############",
+		"############",
+		"############",
+		"#ffffff#####",
+		"#ffffff#####",
+		"#ffffff#####",
+		"#ffffff#####",
+		"#####pp#####",
+		"#####pp#####",
+		"#####pp#####",
+	]},
+	"taller": {"w": 24, "h": 12, "door_x": 11, "rows": [
+		"###################.....",
+		"########################",
+		"########################",
+		"########################",
+		"#ffffffffffffffffffffff#",
+		"#ffffffffffffffffffffff#",
+		"#####fffffffffffff######",
+		"#####fffffffffffff######",
+		"###########pp###########",
+		"###########pp###########",
+		"###########pp###########",
+		".....######pp######.....",
+	]},
+}

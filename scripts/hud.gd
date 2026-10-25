@@ -11,6 +11,7 @@ var world: World
 var goals: Array = []
 var minimap: Minimap
 var bars: StatBars
+var inventory_ui: InventoryUI
 var clock := 0.0
 var raining := false
 var warning := ""         # aviso de peligro ambiental (aire toxico, lluvia acida)
@@ -39,6 +40,9 @@ func setup(p: Player, w: World, g: Array) -> void:
 	bars.position = Vector2(10, 10)
 	add_child(bars)
 	bars.setup(p)
+	inventory_ui = InventoryUI.new()
+	add_child(inventory_ui)
+	inventory_ui.setup(p)
 	minimap = Minimap.new()
 	add_child(minimap)
 	minimap.setup(w, p, g)
@@ -87,7 +91,7 @@ func _draw_gear() -> void:
 	var col := Color("b8bcc4") if frac > 0.25 else Color("d64545")
 	draw_rect(Rect2(x, y + 11.0, 100.0 * frac, BAR_H - 3.0), col)
 	draw_texture(_scrap_icon, Vector2(x, y + 19.0))
-	_txt(Vector2(x + 11.0, y + 26.0), "%d/%d" % [player.scrap, Player.INVENTORY_LIMIT], 10, Color(0.9, 0.9, 0.9))
+	_txt(Vector2(x + 11.0, y + 26.0), "x%d" % player.scrap, 10, Color(0.9, 0.9, 0.9))
 	if notes_total > 0:
 		_txt(Vector2(x + 54.0, y + 26.0), "Notas %d/%d" % [notes_found, notes_total], 10, Color("e8e2cf"))
 

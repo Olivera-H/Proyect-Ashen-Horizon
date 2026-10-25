@@ -63,6 +63,14 @@ Los **personajes y zombis** usan hojas de sprites (`assets/sprites/`) con contor
 
 Las **calles, aceras y el césped** tienen su propio atlas (`assets/world/terrain.png`, generado por `tools/gen_terrain.py`): asfalto con grietas, baches y huellas, aceras con bordillo, césped en cinco niveles de sequedad (de exuberante a ceniza) y escombros para las barricadas. La **calle del medio es una autopista de 4 carriles** (doble línea amarilla, líneas blancas discontinuas, flechas, cebras y líneas de pare en cada cruce) con **semáforos** (la mayoría apagados; algunos parpadean en ámbar o rojo y brillan de noche), señales de pare, límite de velocidad, peatones y carteles verdes (Horizonte / Industrial), postes de luz, autos abandonados, conos, hidrantes, basureros, alcantarillas, árboles secos, arbustos y rocas (`tools/gen_props.py`). Los autos solo bloquean los carriles exteriores: los dos del centro siempre se pueden recorrer.
 
+Las **casas** forman un vecindario (`tools/gen_houses.py` + tu arte en `assets/houses/`): cabañas, casas, chalets y talleres industriales, con la fachada hacia la calle, caminito hasta la acera, buzón y arbustos. Cada casa tiene su techo y su interior: el techo se vuelve transparente cuando entras. El **refugio** está rodeado por un cercado de madera con alambre de púas, un portón abierto y un cartel.
+
+![Refugio con cercado](docs/captura-refugio.png)
+
+El **inventario** (`inventory.gd`, `inventory_ui.gd`) tiene 3 casillas rápidas abajo (toca para usar; teclas 1-3), una mochila de 15 casillas con el botón de la derecha (tecla B) y 3 casillas de **habilidades** equipadas. Toca un objeto para seleccionarlo y luego otra casilla para moverlo, o usa Usar / Equipar / Tirar. Hay 6 habilidades (Golpe fuerte, Resistencia, Pies ligeros, Manos hábiles, Estómago fuerte, Sigilo); se aprenden con los manuales de supervivencia escondidos en las casas.
+
+![Inventario](docs/captura-inventario.png)
+
 ![Calles de día](docs/captura-calles.png)
 ![Autopista de noche](docs/captura-calles-noche.png)
 
@@ -90,11 +98,19 @@ scripts/
   pixel_art.gd          Tiles, iconos y luces generados por código (arte provisional)
   sprite_sheets.gd      Carga las hojas de sprites y arma las animaciones
   supply_drop.gd        Entrega aérea: avión, caja y paracaídas
+  houses.gd             Techos con fundido, interiores y cercado del refugio
+  house_data.gd         Muros y pisos de cada casa (generado por tools/gen_houses.py)
+  inventory.gd          Modelo del inventario (barra rápida, mochila, habilidades)
+  inventory_ui.gd       Interfaz del inventario
+  item_defs.gd          Objetos y habilidades
   street_markings.gd    Marcas viales y bordillos (cebras, líneas de carril y de pare, flechas)
   street_props.gd       Semáforos, señales, postes, autos, vegetación y manchas del suelo (colocación y colisiones)
 tools/web.sh            Exporta a Web y lo sirve (para Codespaces)
 tools/gen_sprites.py    Genera las hojas de sprites (requiere Pillow)
 tools/gen_terrain.py    Genera el atlas de asfalto, aceras, césped y escombros (requiere Pillow)
+tools/gen_houses.py     Prepara el arte de las casas y genera house_data.gd
+tools/gen_fence.py      Cercado, portón, cartel y buzón
+tools/gen_inventory_ui.py  Iconos y casillas del inventario
 tools/gen_props.py      Genera los objetos de calle: semáforos, señales, autos, árboles... (requiere Pillow)
 assets/supply/          Avión, caja y paracaídas de las entregas aéreas (originales en originales/)
 assets/world/           terrain.png y props/ (objetos de calle)

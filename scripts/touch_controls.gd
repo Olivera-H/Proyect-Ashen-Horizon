@@ -52,6 +52,9 @@ func _input(event: InputEvent) -> void:
 
 
 func _press(index: int, pos: Vector2) -> void:
+	for n in get_tree().get_nodes_in_group("ui_block"):
+		if n.has_method("blocks") and n.blocks(pos):
+			return
 	for b in buttons:
 		var c: Vector2 = b["c"]
 		var r: float = b["r"]

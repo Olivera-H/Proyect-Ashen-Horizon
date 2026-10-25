@@ -61,10 +61,15 @@ func _ready() -> void:
 
 	pickup_root = Node2D.new()
 	add_child(pickup_root)
+	var houses_floor := Node2D.new()
+	add_child(houses_floor)
 	ents = Node2D.new()
 	ents.y_sort_enabled = true
 	add_child(ents)
 	StreetProps.spawn(world, ents)
+	var houses := Houses.new()
+	add_child(houses)
+	houses.setup(world, houses_floor, ents)
 
 	_find_rects()
 	_spawn_player()
@@ -74,6 +79,7 @@ func _ready() -> void:
 	_update_daylight(0.0)
 
 	hud.toast("Mateo Vargas, ex-bombero. Encuentra el Laboratorio Horizonte.", 6.0)
+	hud.toast("Barra inferior: toca un objeto para usarlo. La mochila guarda más objetos y 3 habilidades.", 8.0)
 	hud.toast("Mueve: joystick izquierdo (al borde, corres) · Ataca, esquiva, repara y linterna: botones", 7.0)
 
 
@@ -81,8 +87,7 @@ func _ready() -> void:
 
 func _rect_for(pos: Vector2) -> Rect2:
 	for b in world.buildings:
-		var r: Rect2i = b["rect"]
-		var rr := Rect2(Vector2(r.position) * float(World.TS), Vector2(r.size) * float(World.TS))
+		var rr: Rect2 = b["inner"]
 		if rr.has_point(pos):
 			return rr
 	return Rect2()
@@ -92,9 +97,9 @@ func _find_rects() -> void:
 	for g in world.objectives:
 		var gp: Vector2 = g["pos"]
 		if g["main"]:
-			main_rect = _rect_for(gp).grow(-float(World.TS))
+			main_rect = _rect_for(gp)
 		elif g["name"] == "Refugio":
-			refuge_rect = _rect_for(gp).grow(-float(World.TS))
+			refuge_rect = _rect_for(gp)
 	world.safe_rect = refuge_rect
 
 
@@ -153,8 +158,8 @@ func _spawn_pickups() -> void:
 	var step := maxi(1, int(float(count) / float(NOTES.size())))
 	for i in NOTES.size():
 		var b: Dictionary = world.buildings[mini(i * step, count - 1)]
-		var r: Rect2i = b["rect"]
-		var t := Vector2i(r.position.x + int(r.size.x / 2.0), r.position.y + int(r.size.y / 2.0))
+		var fl: Array = b["floors"]
+		var t: Vector2i = fl[fl.size() / 2 + (i % 3) * 3 - 3]
 		_add_pickup(world.tile_center(t), "note", NOTES[i])
 
 

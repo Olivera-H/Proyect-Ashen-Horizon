@@ -23,7 +23,10 @@ var stamina := 100.0
 var hunger := 100.0     # 100 = lleno
 var thirst := 100.0     # 100 = hidratado
 var infection := 0.0    # 0 = sano, 100 = muerte
-var scrap := 0
+var inventory := Inventory.new()
+var scrap: int:
+	get:
+		return inventory.count("scrap")
 var weapon_durability := WEAPON_MAX
 var weapon_name := "Tubo de hierro"
 
@@ -52,7 +55,20 @@ var halo: PointLight2D
 var fx: Node2D
 
 
+func has_skill(id: String) -> bool:
+	return inventory.has_equipped(id)
+
+
+func _give_starting_items() -> void:
+	inventory.add("bandage", 1)
+	inventory.add("water", 1)
+	inventory.add("golpe", 1)
+	inventory.add("resistencia", 1)
+	inventory.move(Inventory.BAG_START, Inventory.SKILL_START)   # "Golpe fuerte" ya viene equipada
+
+
 func setup(id: String) -> void:
+	_give_starting_items()
 	char_id = id
 	data = Characters.get_data(id)
 	max_health = data["max_health"]
@@ -113,7 +129,7 @@ func noise_radius() -> float:
 		base = 110.0 if running else 38.0
 	if _spike_t > 0.0:
 		base = maxf(base, _spike_radius)
-	return base
+	return base * (0.65 if has_skill("sigilo") else 1.0)
 
 
 func make_noise(radius: float, duration: float) -> void:
@@ -137,6 +153,8 @@ func _physics_process(delta: float) -> void:
 		var wants_run := Input.is_action_pressed("run") and dir.length() > 0.3
 		running = wants_run and not exhausted and stamina > 0.0
 		var speed: float = data["run_speed"] if running else data["walk_speed"]
+		if has_skill("pies"):
+			speed *= 1.08
 		if _attack_t > 0.0:
 			speed *= 0.5
 		velocity = dir * speed
@@ -151,6 +169,9 @@ func _physics_process(delta: float) -> void:
 		_try_attack()
 	if Input.is_action_just_pressed("repair"):
 		_try_repair()
+	for k in Inventory.HOTBAR:
+		if Input.is_action_just_pressed("slot%d" % (k + 1)):
+			use_slot(k)
 	if Input.is_action_just_pressed("flashlight"):
 		flashlight_on = not flashlight_on
 
@@ -171,14 +192,17 @@ func _update_stats(delta: float) -> void:
 	# estamina
 	if not running and _dodge_t <= 0.0:
 		var regen: float = data["stamina_regen"]
+		if has_skill("resistencia"):
+			regen *= 1.4
 		if hunger < 20.0 or thirst < 20.0:
 			regen *= 0.5
 		stamina = minf(max_stamina, stamina + regen * delta)
 		if exhausted and stamina >= max_stamina * 0.25:
 			exhausted = false
 	# hambre y sed
-	hunger = maxf(0.0, hunger - 0.12 * delta)
-	thirst = maxf(0.0, thirst - 0.18 * delta)
+	var drain := 0.6 if has_skill("estomago") else 1.0
+	hunger = maxf(0.0, hunger - 0.12 * delta * drain)
+	thirst = maxf(0.0, thirst - 0.18 * delta * drain)
 	if hunger <= 0.0 or thirst <= 0.0:
 		_hurt_over_time(1.5 * delta)
 	# infeccion
@@ -217,6 +241,8 @@ func _try_attack() -> void:
 	make_noise(90.0, 0.35)
 	var armed := weapon_durability > 0.0
 	var dmg: float = (ATTACK_DAMAGE if armed else 6.0) * float(data["melee_damage"])
+	if has_skill("golpe"):
+		dmg *= 1.25
 	var hit_any := false
 	for z in get_tree().get_nodes_in_group("zombies"):
 		var to_z: Vector2 = z.global_position - global_position
@@ -236,33 +262,75 @@ func _try_repair() -> void:
 	if weapon_durability >= WEAPON_MAX:
 		toast.emit("El arma ya está en buen estado.")
 		return
-	scrap -= 2
-	var gain := 20.0 * float(data["craft_bonus"])
+	inventory.remove("scrap", 2)
+	var gain := 20.0 * float(data["craft_bonus"]) * (1.5 if has_skill("manos") else 1.0)
 	weapon_durability = minf(WEAPON_MAX, weapon_durability + gain)
 	toast.emit("Arma reparada.")
 
 
-## Devuelve true si el objeto fue recogido/consumido.
+## Devuelve true si el objeto fue recogido. Los consumibles van al inventario (barra rapida y luego mochila).
 func collect(kind: String) -> bool:
-	match kind:
-		"scrap":
-			if scrap >= INVENTORY_LIMIT:
-				toast.emit("Inventario lleno.")
-				return false
-			scrap += 1
-			toast.emit("+1 chatarra")
-		"food":
-			hunger = minf(100.0, hunger + 35.0)
-			toast.emit("Comida: hambre saciada")
-		"water":
-			thirst = minf(100.0, thirst + 40.0)
-			toast.emit("Agua: sed saciada")
+	if kind == "manual":
+		return _learn_skill()
+	if not ItemDefs.ITEMS.has(kind):
+		return false
+	if inventory.add(kind, 1) > 0:
+		toast.emit("Inventario lleno.")
+		return false
+	toast.emit("+1 %s" % ItemDefs.item_name(kind).to_lower())
+	return true
+
+
+func _learn_skill() -> bool:
+	var unknown: Array = []
+	for sk in ItemDefs.SKILLS:
+		if not inventory.owns(sk):
+			unknown.append(sk)
+	if unknown.is_empty():
+		toast.emit("Manual de supervivencia: ya conoces todo lo que enseña.")
+		return true
+	var pick: String = unknown[randi() % unknown.size()]
+	if inventory.add(pick, 1) > 0:
+		toast.emit("Manual de supervivencia: libera espacio en la mochila para aprender.")
+		return false
+	toast.emit("Aprendiste «%s». Equípala en la mochila." % ItemDefs.item_name(pick))
+	return true
+
+
+## Usa el objeto de la casilla i (vendaje, comida, agua, chatarra). Devuelve true si se consumio.
+func use_slot(i: int) -> bool:
+	var s = inventory.slots[i]
+	if s == null or ItemDefs.is_skill(s["id"]) or dead:
+		return false
+	match s["id"]:
 		"bandage":
+			if health >= max_health and infection <= 0.0:
+				toast.emit("No necesitas un vendaje ahora.")
+				return false
 			health = minf(max_health, health + 25.0)
 			infection = maxf(0.0, infection - 20.0)
 			toast.emit("Vendaje: salud recuperada")
+		"food":
+			if hunger >= 99.0:
+				toast.emit("No tienes hambre.")
+				return false
+			hunger = minf(100.0, hunger + 35.0)
+			toast.emit("Comida: hambre saciada")
+		"water":
+			if thirst >= 99.0:
+				toast.emit("No tienes sed.")
+				return false
+			thirst = minf(100.0, thirst + 40.0)
+			toast.emit("Agua: sed saciada")
+		"scrap":
+			if scrap < 2 or weapon_durability >= WEAPON_MAX:
+				_try_repair()
+				return false
+			_try_repair()
+			return true
 		_:
 			return false
+	inventory.take_one(i)
 	return true
 
 
