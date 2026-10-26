@@ -59,7 +59,7 @@ func owns(id: String) -> bool:
 
 ## Mete n unidades: primero completa montones, luego usa casillas libres (barra rapida y luego mochila).
 ## Devuelve las unidades que no cupieron.
-func add(id: String, n: int = 1) -> int:
+func add(id: String, n: int = 1, durability: float = -1.0) -> int:
 	var maxn := ItemDefs.max_stack(id)
 	var order: Array = []
 	if ItemDefs.is_skill(id):
@@ -80,6 +80,8 @@ func add(id: String, n: int = 1) -> int:
 		if slots[i] == null:
 			var put := mini(n, maxn)
 			slots[i] = {"id": id, "n": put}
+			if ItemDefs.is_weapon(id) and not ItemDefs.is_gun(id):
+				slots[i]["d"] = durability if durability >= 0.0 else float(ItemDefs.ITEMS[id]["dur"])
 			n -= put
 	changed.emit()
 	return n

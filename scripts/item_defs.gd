@@ -8,6 +8,14 @@ const ITEMS := {
 	"food": {"name": "Comida", "desc": "Sacia 35 de hambre.", "max": 5, "use": true},
 	"water": {"name": "Agua", "desc": "Sacia 40 de sed.", "max": 5, "use": true},
 	"scrap": {"name": "Chatarra", "desc": "Gasta 2 para reparar el arma.", "max": 8, "use": true},
+	"tubo": {"name": "Tubo de hierro", "desc": "Cuerpo a cuerpo. Se desgasta; repáralo con chatarra.", "max": 1, "weapon": "melee", "dmg": 18.0, "cd": 0.45, "range": 42.0, "dur": 40.0, "noise": 90.0},
+	"machete": {"name": "Machete", "desc": "Cuerpo a cuerpo rápido y afilado. Se desgasta.", "max": 1, "weapon": "melee", "dmg": 22.0, "cd": 0.36, "range": 40.0, "dur": 35.0, "noise": 80.0},
+	"hacha": {"name": "Hacha de bombero", "desc": "Cuerpo a cuerpo lento pero devastador. Se desgasta.", "max": 1, "weapon": "melee", "dmg": 34.0, "cd": 0.7, "range": 46.0, "dur": 32.0, "noise": 100.0},
+	"pistola": {"name": "Pistola", "desc": "Dispara balas. Precisa, pero el disparo se oye lejos.", "max": 1, "weapon": "gun", "ammo": "balas", "dmg": 34.0, "cd": 0.34, "range": 230.0, "pellets": 1, "spread": 0.04, "noise": 280.0},
+	"escopeta": {"name": "Escopeta", "desc": "Dispara cartuchos. Devasta de cerca; muy ruidosa.", "max": 1, "weapon": "gun", "ammo": "cartuchos", "dmg": 17.0, "cd": 0.95, "range": 120.0, "pellets": 5, "spread": 0.26, "noise": 340.0},
+	"balas": {"name": "Balas", "desc": "Munición de la pistola.", "max": 18},
+	"cartuchos": {"name": "Cartuchos", "desc": "Munición de la escopeta.", "max": 8},
+	"tarjeta": {"name": "Tarjeta Horizonte", "desc": "Acceso de nivel 3. Abre la puerta del laboratorio.", "max": 1, "key": true},
 	"golpe": {"name": "Golpe fuerte", "desc": "Habilidad: +25% de daño cuerpo a cuerpo.", "skill": true},
 	"resistencia": {"name": "Resistencia", "desc": "Habilidad: la estamina se recupera 40% más rápido.", "skill": true},
 	"pies": {"name": "Pies ligeros", "desc": "Habilidad: caminas y corres 8% más rápido.", "skill": true},
@@ -18,6 +26,18 @@ const ITEMS := {
 const SKILLS := ["golpe", "resistencia", "pies", "manos", "estomago", "sigilo"]
 
 static var _tex := {}
+
+
+## Cuanto da cada recogida de municion o arma.
+const PICKUP_AMOUNT := {"balas": 6, "cartuchos": 3}
+
+
+static func is_weapon(id: String) -> bool:
+	return ITEMS.get(id, {}).has("weapon")
+
+
+static func is_gun(id: String) -> bool:
+	return ITEMS.get(id, {}).get("weapon", "") == "gun"
 
 
 static func is_skill(id: String) -> bool:

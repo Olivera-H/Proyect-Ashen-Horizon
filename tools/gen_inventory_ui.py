@@ -79,6 +79,85 @@ def scrap():
     return outline(im)
 
 
+# ------------------------------------------------------------ armas y municion
+def line(d, pts, c, w=1):
+    d.line(pts, fill=c, width=w)
+
+
+def tubo():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    line(d, [(3, 13), (12, 3)], hx("#8a8d93"), 3)
+    line(d, [(3, 12), (11, 3)], hx("#c0c4cc"), 1)
+    line(d, [(4, 14), (13, 4)], hx("#55585e"), 1)
+    return outline(im)
+
+
+def hacha():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    line(d, [(3, 14), (11, 4)], hx("#8a5a2b"), 2)
+    d.polygon([(8, 2), (14, 4), (14, 8), (10, 8), (8, 6)], fill=hx("#c0392b"))
+    d.polygon([(11, 3), (14, 4), (14, 6), (11, 6)], fill=hx("#e8e4d0"))
+    P(im, [(9, 3), (9, 4)], hx("#e05a4a"))
+    return outline(im)
+
+
+def machete():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    d.polygon([(5, 11), (13, 2), (14, 3), (14, 6), (7, 13)], fill=hx("#b4b7bd"))
+    line(d, [(6, 11), (13, 3)], hx("#eef0f4"), 1)
+    line(d, [(8, 12), (14, 6)], hx("#6f737a"), 1)
+    line(d, [(2, 14), (6, 10)], hx("#5a3a1e"), 2)
+    P(im, [(5, 10), (6, 11), (4, 9)], hx("#c9a227"))
+    return outline(im)
+
+
+def pistola():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    R(d, 2, 4, 13, 7, hx("#4a4d55")); R(d, 2, 4, 13, 4, hx("#8a8d93"))
+    R(d, 3, 8, 6, 9, hx("#4a4d55")); R(d, 4, 9, 7, 13, hx("#3a2a1e")); R(d, 4, 9, 4, 13, hx("#6b4a2a"))
+    R(d, 8, 8, 9, 8, hx("#2a2c33")); R(d, 12, 5, 13, 6, hx("#2a2c33"))
+    P(im, [(3, 5)], hx("#c0c4cc"))
+    return outline(im)
+
+
+def escopeta():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    R(d, 5, 5, 15, 6, hx("#4a4d55")); R(d, 5, 5, 15, 5, hx("#8a8d93"))
+    R(d, 6, 7, 12, 7, hx("#3a3d44"))
+    d.polygon([(0, 8), (6, 6), (6, 9), (3, 11), (1, 11)], fill=hx("#6b4a2a"))
+    R(d, 7, 8, 11, 9, hx("#8a5a2b"))
+    P(im, [(1, 9), (2, 8)], hx("#a8743f"))
+    return outline(im)
+
+
+def balas():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    for i, x in enumerate((3, 7, 11)):
+        R(d, x, 4 + (i % 2), x + 2, 12, hx("#c9a227"))
+        R(d, x, 4 + (i % 2), x + 2, 6 + (i % 2), hx("#b87333"))
+        R(d, x, 4 + (i % 2), x, 12, hx("#f1d262"))
+        R(d, x, 12, x + 2, 13, hx("#8a6a1a"))
+    return outline(im)
+
+
+def cartuchos():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    for x in (3, 9):
+        R(d, x, 3, x + 3, 10, hx("#c0392b")); R(d, x, 3, x, 10, hx("#e05a4a"))
+        R(d, x, 10, x + 3, 13, hx("#c9a227")); R(d, x, 10, x, 13, hx("#f1d262"))
+        R(d, x + 1, 2, x + 2, 2, hx("#a82a20"))
+    return outline(im)
+
+
+def tarjeta():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    R(d, 1, 3, 14, 12, hx("#e8eef4")); R(d, 1, 3, 14, 3, hx("#ffffff")); R(d, 1, 12, 14, 12, hx("#aab4c0"))
+    R(d, 1, 5, 14, 6, hx("#2a3a52"))
+    R(d, 3, 8, 6, 10, hx("#e0b030")); R(d, 4, 9, 5, 9, hx("#a8842a"))
+    R(d, 9, 9, 12, 9, hx("#4a8ac0")); R(d, 9, 11, 11, 11, hx("#8a94a0"))
+    return outline(im)
+
+
 # --------------------------------------------------------------- habilidades
 def badge(color):
     im = new(16, 16); d = ImageDraw.Draw(im)
@@ -145,6 +224,8 @@ def backpack():
 def main():
     os.makedirs(OUT, exist_ok=True)
     sp = {"item_bandage": bandage(), "item_food": food(), "item_water": water(), "item_scrap": scrap(),
+          "item_tubo": tubo(), "item_hacha": hacha(), "item_machete": machete(), "item_pistola": pistola(),
+          "item_escopeta": escopeta(), "item_balas": balas(), "item_cartuchos": cartuchos(), "item_tarjeta": tarjeta(),
           "slot": slot("item"), "slot_sel": slot("sel"), "slot_skill": slot("skill"), "bag": backpack()}
     for s in ("golpe", "resistencia", "pies", "manos", "estomago", "sigilo"):
         sp["skill_" + s] = skill(s)
@@ -153,7 +234,7 @@ def main():
     print("%d imagenes en %s" % (len(sp), os.path.normpath(OUT)))
     if "--preview" in sys.argv:
         path = sys.argv[sys.argv.index("--preview") + 1]
-        sheet = Image.new("RGBA", (8 * 80, 2 * 80), (60, 90, 60, 255))
+        sheet = Image.new("RGBA", (8 * 80, 3 * 80), (60, 90, 60, 255))
         for i, (k, v) in enumerate(sp.items()):
             big = v.resize((v.width * 3, v.height * 3), Image.NEAREST)
             sheet.alpha_composite(big, ((i % 8) * 80 + 4, (i // 8) * 80 + 4))

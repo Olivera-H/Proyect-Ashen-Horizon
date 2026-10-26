@@ -235,6 +235,10 @@ func _draw_slot(i: int) -> void:
 		if icon != null:
 			var sz := Vector2(16, 16) * pulse
 			draw_texture_rect(icon, Rect2(r.position + Vector2(SLOT, SLOT) * 0.5 - sz * 0.5, sz), false)
+		if s.has("d"):
+			var frac := clampf(float(s["d"]) / float(ItemDefs.ITEMS[s["id"]]["dur"]), 0.0, 1.0)
+			draw_rect(Rect2(r.position.x + 3.0, r.position.y + SLOT - 5.0, SLOT - 6.0, 2.0), Color(0, 0, 0, 0.8))
+			draw_rect(Rect2(r.position.x + 3.0, r.position.y + SLOT - 5.0, (SLOT - 6.0) * frac, 2.0), Color("b8bcc4") if frac > 0.25 else Color("d64545"))
 		if int(s["n"]) > 1:
 			_txt(r.position + Vector2(0, SLOT - 2.0), str(int(s["n"])), 8, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 2.0)
 	if i == selected:
@@ -284,9 +288,12 @@ func _draw_panel() -> void:
 		var kind := Inventory.kind_of(selected)
 		if ItemDefs.is_skill(id):
 			labels.append(["QUITAR", "unequip"] if kind == "skill" else ["EQUIPAR", "equip"])
-		else:
+		elif ItemDefs.is_weapon(id):
+			labels.append(["EQUIPAR", "use"])
+		elif not ItemDefs.ITEMS[id].get("key", false):
 			labels.append(["USAR", "use"])
-		labels.append(["TIRAR", "drop"])
+		if not ItemDefs.ITEMS[id].get("key", false):
+			labels.append(["TIRAR", "drop"])
 		var bx := pr.position.x + PAD
 		var by := pr.end.y - 20.0
 		for l in labels:

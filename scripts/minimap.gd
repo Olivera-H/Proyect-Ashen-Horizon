@@ -242,6 +242,8 @@ func _cycle_zoom() -> void:
 
 
 func _sector_name(t: Vector2i) -> String:
+	if t.x >= World.LAB_X:
+		return "LABORATORIO"
 	if t.x >= 87:
 		return "ZONA INDUSTRIAL"
 	var hw: Array = World.H_ROADS[1]

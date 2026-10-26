@@ -30,15 +30,20 @@ func setup(w: World, floor_parent: Node2D, ents: Node2D) -> void:
 		var inner := Sprite2D.new()
 		inner.texture = _tex("res://assets/houses/%s_interior.png" % b["kind"])
 		inner.centered = false
+		inner.scale = Vector2(0.5, 0.5)    # el arte esta al doble de resolucion
+		inner.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		inner.position = origin
 		floor_parent.add_child(inner)
 		var roof := Sprite2D.new()
 		roof.texture = _tex("res://assets/houses/%s_roof.png" % b["kind"])
 		roof.centered = false
+		roof.scale = Vector2(0.5, 0.5)
+		roof.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		roof.position = origin
 		add_child(roof)
 		_roofs.append({"sprite": roof, "b": b})
 	_build_fence(ents)
+	_make_lab_door()
 
 
 func _process(delta: float) -> void:
@@ -65,7 +70,7 @@ func _inside(b: Dictionary, t: Vector2i) -> bool:
 	var d: Dictionary = HouseData.TYPES[b["kind"]]
 	var row: String = d["rows"][t.y - r.position.y]
 	var c := row[t.x - r.position.x]
-	return c == "f" or c == "p"
+	return c == "f" or c == "p" or c == "o"
 
 
 # ------------------------------------------------------------ cercado
@@ -84,18 +89,21 @@ func _sprite(ents: Node2D, tex_name: String, bottom_center: Vector2) -> Sprite2D
 
 
 func _build_fence(ents: Node2D) -> void:
-	if world.fence.is_empty():
-		return
-	var ring: Rect2i = world.fence["ring"]
+	for f in world.fences:
+		_build_one_fence(ents, f)
+
+
+func _build_one_fence(ents: Node2D, f: Dictionary) -> void:
+	var ring: Rect2i = f["ring"]
 	var ts := float(World.TS)
 	var x0 := ring.position.x
 	var x1 := ring.end.x - 1
 	var y0 := ring.position.y
 	var y1 := ring.end.y - 1
-	var gate: Array = world.fence["gate"]
+	var gate: Array = f["gate"]
 	var rnd := RandomNumberGenerator.new()
-	rnd.seed = 4242
-	for c in world.fence["cells"]:
+	rnd.seed = 4242 + x0
+	for c in f["cells"]:
 		var cell: Vector2i = c
 		var base := Vector2((cell.x + 0.5) * ts, (cell.y + 1.0) * ts)
 		var corner := (cell.x == x0 or cell.x == x1) and (cell.y == y0 or cell.y == y1)
@@ -111,6 +119,37 @@ func _build_fence(ents: Node2D) -> void:
 	var left := _sprite(ents, "gate_post", Vector2(gate[0] * ts + 3.0, gy))
 	_sprite(ents, "gate_post", Vector2((gate[1] + 1) * ts - 3.0, gy))
 	if left != null:
-		var sign_s := _sprite(ents, "refuge_sign", Vector2(gate[0] * ts + 3.0 + 18.0, gy - 12.0))
+		var sign_s := _sprite(ents, f.get("sign", "refuge_sign"), Vector2(gate[0] * ts + 3.0 + 18.0, gy - 12.0))
 		if sign_s != null:
 			sign_s.z_index = 1
+
+
+# ------------------------------------------------------------ puerta del laboratorio
+
+var _door_open_sprite: Sprite2D
+var lab_open := false
+
+
+func _make_lab_door() -> void:
+	if world.lab_b.is_empty():
+		return
+	_door_open_sprite = Sprite2D.new()
+	_door_open_sprite.texture = _tex("res://assets/houses/lab_door_open.png")
+	_door_open_sprite.centered = false
+	_door_open_sprite.scale = Vector2(0.5, 0.5)
+	var r: Rect2i = world.lab_b["rect"]
+	_door_open_sprite.position = (Vector2(r.position) + Vector2(17.0 - 0.5, 14.0 + 0.2)) * float(World.TS)
+	_door_open_sprite.z_index = 2
+	_door_open_sprite.visible = false
+	add_child(_door_open_sprite)
+
+
+func open_lab_door() -> void:
+	if lab_open:
+		return
+	lab_open = true
+	if world.lab_door_body != null:
+		world.lab_door_body.queue_free()
+		world.lab_door_body = null
+	if _door_open_sprite != null:
+		_door_open_sprite.visible = true

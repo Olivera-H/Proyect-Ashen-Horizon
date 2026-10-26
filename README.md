@@ -133,3 +133,10 @@ Ver [docs/DISENO.md](docs/DISENO.md).
 ## Créditos
 
 - Fuente **Pixelify Sans** (The Pixelify Sans Project Authors), bajo licencia SIL Open Font License (ver `assets/fonts/OFL.txt`).
+
+## Armas, laboratorio e historia (Acto I)
+
+- **Armas**: tubo de hierro, machete, hacha (cuerpo a cuerpo, con durabilidad), pistola y escopeta (usan `balas` / `cartuchos` del inventario). Hay armas escondidas en casas cercanas al refugio, en el hospital y en un taller.
+- **Mapa**: 176x96 tiles; nueva carretera vertical y el **Laboratorio Horizonte** (compuesto cercado, 36x20 tiles) al noreste. El jugador nace en el refugio y ahí no aparecen zombis.
+- **Hitboxes de interiores**: `tools/audit_houses.py` comprueba que el círculo del jugador pueda recorrer cada interior y ajusta los muebles (`python3 tools/gen_houses.py` regenera todo). El laboratorio se dibuja con `tools/gen_lab.py`, así arte y colisiones coinciden.
+- **Historia**: radio de Lena → hospital (Tarjeta Horizonte) → puerta del laboratorio → terminal «Lote H-7» → gancho para el Acto II.

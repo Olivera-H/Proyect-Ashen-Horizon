@@ -113,6 +113,21 @@ def refuge_sign():
     return gp.finish(img, rim=False)
 
 
+def horizonte_sign():
+    s = "HORIZONTE"
+    w = gp.text_w(s) + 8
+    img = gp.new(w, 13)
+    d = ImageDraw.Draw(img)
+    d._image = img
+    gp.rect(d, 0, 2, w - 1, 12, gp.hx("#22364a"))
+    gp.rect(d, 0, 2, w - 1, 2, gp.hx("#3ea8a0"))
+    gp.rect(d, 0, 12, w - 1, 12, gp.hx("#141f2c"))
+    gp.text(img, 4, 5, s, gp.hx("#e6f0ec"))
+    gp.rect(d, 3, 0, 3, 1, WIRE)
+    gp.rect(d, w - 4, 0, w - 4, 1, WIRE)
+    return gp.finish(img, rim=False)
+
+
 def mailbox():
     img = gp.new(10, 20)
     d = ImageDraw.Draw(img)
@@ -129,7 +144,7 @@ def build():
     return {
         "fence_h_a": fence_h(0), "fence_h_b": fence_h(1), "fence_h_c": fence_h(2),
         "fence_v": fence_v(), "fence_post": fence_post(), "gate_post": gate_post(),
-        "refuge_sign": refuge_sign(), "mailbox": mailbox(),
+        "refuge_sign": refuge_sign(), "horizonte_sign": horizonte_sign(), "mailbox": mailbox(),
     }
 
 

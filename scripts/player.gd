@@ -10,7 +10,6 @@ const DODGE_SPEED := 190.0
 const DODGE_TIME := 0.22
 const ATTACK_RANGE := 42.0
 const ATTACK_DAMAGE := 18.0
-const WEAPON_MAX := 40.0
 const INVENTORY_LIMIT := 8
 
 var char_id := "mateo"
@@ -27,8 +26,21 @@ var inventory := Inventory.new()
 var scrap: int:
 	get:
 		return inventory.count("scrap")
-var weapon_durability := WEAPON_MAX
-var weapon_name := "Tubo de hierro"
+var weapon_id := "tubo"
+var weapon_durability := 40.0
+var weapon_name: String:
+	get:
+		return ItemDefs.item_name(weapon_id)
+var weapon_max: float:
+	get:
+		return float(ItemDefs.ITEMS[weapon_id].get("dur", 1.0))
+var weapon_is_gun: bool:
+	get:
+		return ItemDefs.is_gun(weapon_id)
+var ammo_in_reserve: int:
+	get:
+		return inventory.count(ItemDefs.ITEMS[weapon_id].get("ammo", "")) if weapon_is_gun else 0
+var _muzzle_t := 0.0
 
 var facing := Vector2.DOWN
 var running := false
@@ -183,6 +195,7 @@ func _tick_timers(delta: float) -> void:
 	_dodge_t = maxf(0.0, _dodge_t - delta)
 	_dodge_cd = maxf(0.0, _dodge_cd - delta)
 	_attack_t = maxf(0.0, _attack_t - delta)
+	_muzzle_t = maxf(0.0, _muzzle_t - delta)
 	_attack_cd = maxf(0.0, _attack_cd - delta)
 	_invuln = maxf(0.0, _invuln - delta)
 	_spike_t = maxf(0.0, _spike_t - delta)
@@ -232,21 +245,26 @@ func _try_dodge(dir: Vector2) -> void:
 
 
 func _try_attack() -> void:
+	var def: Dictionary = ItemDefs.ITEMS[weapon_id]
 	if _attack_cd > 0.0 or _dodge_t > 0.0 or stamina < 8.0:
 		return
-	_attack_cd = 0.45
+	if weapon_is_gun:
+		_try_shoot(def)
+		return
+	_attack_cd = float(def["cd"])
 	_attack_t = 0.18
 	_swing_dir = facing
 	stamina -= 8.0
-	make_noise(90.0, 0.35)
+	make_noise(float(def["noise"]), 0.35)
 	var armed := weapon_durability > 0.0
-	var dmg: float = (ATTACK_DAMAGE if armed else 6.0) * float(data["melee_damage"])
+	var dmg: float = (float(def["dmg"]) if armed else 6.0) * float(data["melee_damage"])
 	if has_skill("golpe"):
 		dmg *= 1.25
+	var reach: float = float(def["range"])
 	var hit_any := false
 	for z in get_tree().get_nodes_in_group("zombies"):
 		var to_z: Vector2 = z.global_position - global_position
-		if to_z.length() <= ATTACK_RANGE and to_z.normalized().dot(facing) > 0.3:
+		if to_z.length() <= reach and to_z.normalized().dot(facing) > 0.3:
 			z.take_damage(dmg, facing * 140.0, 0.35 if armed else 0.15)
 			hit_any = true
 	if hit_any and armed:
@@ -255,16 +273,67 @@ func _try_attack() -> void:
 			toast.emit("Tu %s se rompió. Repárala con chatarra." % weapon_name.to_lower())
 
 
+func _try_shoot(def: Dictionary) -> void:
+	var ammo_id: String = def["ammo"]
+	if inventory.count(ammo_id) <= 0:
+		_attack_cd = 0.3
+		toast.emit("Sin munición: busca %s." % ItemDefs.item_name(ammo_id).to_lower())
+		return
+	inventory.remove(ammo_id, 1)
+	_attack_cd = float(def["cd"])
+	_muzzle_t = 0.08
+	_swing_dir = facing
+	stamina -= 3.0
+	make_noise(float(def["noise"]), 0.6)
+	var dmg: float = float(def["dmg"])
+	var world_node := get_tree().get_first_node_in_group("world")
+	# punteria: Mateo apunta peor (aim_spread alto) y Lena mejor
+	var spread: float = float(def["spread"]) * float(data["aim_spread"])
+	for i in int(def["pellets"]):
+		var b := Projectile.new()
+		b.world = world_node
+		b.dir = facing.rotated(randf_range(-spread, spread))
+		b.damage = dmg
+		b.max_dist = float(def["range"])
+		get_parent().add_child(b)
+		b.global_position = global_position + facing * 10.0 + Vector2(0, -5)
+	if inventory.count(ammo_id) == 0:
+		toast.emit("Última bala usada.")
+
+
+## Equipa el arma que esta en la casilla i; el arma actual vuelve a esa casilla.
+func equip_from_slot(i: int) -> void:
+	var s = inventory.slots[i]
+	if s == null or not ItemDefs.is_weapon(s["id"]):
+		return
+	var new_id: String = s["id"]
+	var new_d: float = float(s.get("d", ItemDefs.ITEMS[new_id].get("dur", 1.0)))
+	var old_id := weapon_id
+	var old_d := weapon_durability
+	inventory.slots[i] = null
+	weapon_id = new_id
+	weapon_durability = new_d
+	var back: Dictionary = {"id": old_id, "n": 1}
+	if not ItemDefs.is_gun(old_id):
+		back["d"] = old_d
+	inventory.slots[i] = back
+	inventory.changed.emit()
+	toast.emit("Equipaste: %s" % weapon_name)
+
+
 func _try_repair() -> void:
 	if scrap < 2:
 		toast.emit("Necesitas 2 de chatarra para reparar.")
 		return
-	if weapon_durability >= WEAPON_MAX:
+	if weapon_is_gun:
+		toast.emit("Las armas de fuego no se reparan con chatarra.")
+		return
+	if weapon_durability >= weapon_max:
 		toast.emit("El arma ya está en buen estado.")
 		return
 	inventory.remove("scrap", 2)
 	var gain := 20.0 * float(data["craft_bonus"]) * (1.5 if has_skill("manos") else 1.0)
-	weapon_durability = minf(WEAPON_MAX, weapon_durability + gain)
+	weapon_durability = minf(weapon_max, weapon_durability + gain)
 	toast.emit("Arma reparada.")
 
 
@@ -274,11 +343,14 @@ func collect(kind: String) -> bool:
 		return _learn_skill()
 	if not ItemDefs.ITEMS.has(kind):
 		return false
-	if inventory.add(kind, 1) > 0:
+	var amount: int = ItemDefs.PICKUP_AMOUNT.get(kind, 1)
+	var left := inventory.add(kind, amount)
+	if left >= amount:
 		toast.emit("Inventario lleno.")
 		return false
-	toast.emit("+1 %s" % ItemDefs.item_name(kind).to_lower())
-	return true
+	var got := amount - left
+	toast.emit("+%d %s" % [got, ItemDefs.item_name(kind).to_lower()])
+	return left == 0
 
 
 func _learn_skill() -> bool:
@@ -302,6 +374,9 @@ func use_slot(i: int) -> bool:
 	var s = inventory.slots[i]
 	if s == null or ItemDefs.is_skill(s["id"]) or dead:
 		return false
+	if ItemDefs.is_weapon(s["id"]):
+		equip_from_slot(i)
+		return false
 	match s["id"]:
 		"bandage":
 			if health >= max_health and infection <= 0.0:
@@ -323,7 +398,7 @@ func use_slot(i: int) -> bool:
 			thirst = minf(100.0, thirst + 40.0)
 			toast.emit("Agua: sed saciada")
 		"scrap":
-			if scrap < 2 or weapon_durability >= WEAPON_MAX:
+			if scrap < 2 or weapon_is_gun or weapon_durability >= weapon_max:
 				_try_repair()
 				return false
 			_try_repair()
@@ -417,7 +492,7 @@ func _update_visuals(delta: float) -> void:
 	halo.energy = 0.55 * light_mult
 	var target := facing.angle()
 	flash.rotation = lerp_angle(flash.rotation, target, clampf(12.0 * delta, 0.0, 1.0))
-	if _attack_t > 0.0:
+	if _attack_t > 0.0 or weapon_is_gun:
 		fx.queue_redraw()
 	elif fx.has_meta("drawn"):
 		fx.remove_meta("drawn")
@@ -425,6 +500,9 @@ func _update_visuals(delta: float) -> void:
 
 
 func _draw_fx() -> void:
+	if weapon_is_gun:
+		_draw_gun()
+		return
 	if _attack_t <= 0.0:
 		return
 	fx.set_meta("drawn", true)
@@ -437,3 +515,21 @@ func _draw_fx() -> void:
 	# el tubo ya esta dibujado en el sprite: aqui solo la estela del golpe
 	fx.draw_arc(origin, 25.0, a0, a, 10, Color(1, 1, 1, 0.45), 2.0)
 	fx.draw_arc(origin, 22.0, a0 + 0.2, a - 0.1, 8, Color(1, 1, 1, 0.2), 1.0)
+
+
+## Arma de fuego en la mano: se apoya en el costado hacia donde mira, con destello al disparar.
+func _draw_gun() -> void:
+	fx.set_meta("drawn", true)
+	var dirv := facing
+	var base := Vector2(0, -5) + dirv * 6.0
+	var long := weapon_id == "escopeta"
+	var n := 11.0 if long else 7.0
+	var tip := base + dirv * n
+	var side := Vector2(-dirv.y, dirv.x)
+	fx.draw_line(base - dirv * 2.0, tip, Color("22171e"), 4.0 if long else 3.0)
+	fx.draw_line(base - dirv * 2.0, tip, Color("5a5e68"), 2.0)
+	fx.draw_line(base - dirv * 2.0 + side * 1.0, base + side * 1.0 + dirv * 2.0, Color("8a5a2b"), 2.0)
+	if _muzzle_t > 0.0:
+		var k := _muzzle_t / 0.08
+		fx.draw_circle(tip + dirv * 3.0, 4.0 * k + 1.0, Color(1.0, 0.85, 0.4, 0.9))
+		fx.draw_circle(tip + dirv * 3.0, 2.0 * k + 0.5, Color(1.0, 1.0, 0.9, 1.0))

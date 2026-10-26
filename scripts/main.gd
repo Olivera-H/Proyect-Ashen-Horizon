@@ -20,6 +20,7 @@ const NOTES := [
 	"Mapa tachado a mano: «Laboratorio Horizonte — entrada por el muelle de carga, zona industrial».",
 ]
 
+var houses: Houses
 var character_id := "mateo"
 var world: World
 var player: Player
@@ -67,7 +68,7 @@ func _ready() -> void:
 	ents.y_sort_enabled = true
 	add_child(ents)
 	StreetProps.spawn(world, ents)
-	var houses := Houses.new()
+	houses = Houses.new()
 	add_child(houses)
 	houses.setup(world, houses_floor, ents)
 
@@ -125,7 +126,9 @@ func _spawn_zombies() -> void:
 			continue
 		var kind := "walker"
 		var roll := rng.randf()
-		if pos.x >= 87.0 * float(World.TS) and roll < 0.12:
+		if pos.x >= float(World.LAB_X) * float(World.TS) and roll < 0.35:
+			kind = "tank"
+		elif pos.x >= 87.0 * float(World.TS) and roll < 0.12:
 			kind = "tank"
 		elif roll < 0.30:
 			kind = "runner"
@@ -138,13 +141,16 @@ func _spawn_zombies() -> void:
 
 func _icon(kind: String) -> Texture2D:
 	if not _icons.has(kind):
-		_icons[kind] = PixelArt.make_icon(kind)
+		var big := ItemDefs.icon(kind) if ItemDefs.ITEMS.has(kind) and kind != "scrap" and kind != "food" and kind != "water" and kind != "bandage" else null
+		_icons[kind] = big if big != null else PixelArt.make_icon(kind)
 	return _icons[kind]
 
 
 func _add_pickup(pos: Vector2, kind: String, text: String) -> void:
 	var s := Sprite2D.new()
 	s.texture = _icon(kind)
+	if s.texture.get_width() > 8:
+		s.scale = Vector2(0.75, 0.75)
 	s.position = pos
 	pickup_root.add_child(s)
 	_pickups.append({"node": s, "kind": kind, "text": text})
@@ -294,11 +300,41 @@ func _check_refuge(delta: float) -> void:
 		_in_refuge = false
 
 
-func _check_goal() -> void:
-	if main_rect.has_point(player.global_position):
+var _story := 0     # 0 radio inicial, 1 tarjeta conseguida, 2 puerta abierta, 3 fin
+var _door_hint_t := 0.0
+var _radio_t := 6.0
+
+
+func _update_story(delta: float) -> void:
+	if _story == 0:
+		_radio_t -= delta
+		if _radio_t <= 0.0 and _radio_t > -100.0:
+			_radio_t = -1000.0
+			hud.toast("Radio, Lena: «Mateo, el hospital tiene una tarjeta Horizonte de nivel 3. Sin ella no entras al laboratorio, al este.»", 9.0)
+		if player.inventory.owns("tarjeta"):
+			_story = 1
+			hud.toast("Tienes la Tarjeta Horizonte. Sigue la carretera al este hasta el laboratorio.", 7.0)
+	_door_hint_t -= delta
+	if _story < 2 and world.lab_door_rect.size.x > 0.0:
+		var near := world.lab_door_rect.grow(14.0).has_point(player.global_position)
+		if near and player.inventory.owns("tarjeta"):
+			_story = 2
+			houses.open_lab_door()
+			hud.toast("La tarjeta abre la puerta del laboratorio. Busca la terminal del fondo.", 6.0)
+		elif near and _door_hint_t <= 0.0:
+			_door_hint_t = 6.0
+			hud.toast("Puerta bloqueada: requiere una Tarjeta Horizonte (nivel 3).", 4.0)
+	if _story == 2 and world.lab_terminal != Vector2.ZERO \
+			and player.global_position.distance_to(world.lab_terminal) < 22.0:
+		_story = 3
+		hud.toast("Terminal: «Lote H-7 · sujeto de control: M. Vargas». Esto no es una cura: eres tú.", 8.0)
 		_state = "won"
-		_end_t = 1.5
+		_end_t = 4.0
 		hud.end_kind = "won"
+
+
+func _check_goal() -> void:
+	_update_story(get_process_delta_time())
 	if not _drop_goal.is_empty() and _drop_landed:
 		var gp: Vector2 = _drop_goal["pos"]
 		if player.global_position.distance_to(gp) < 24.0:

@@ -85,15 +85,27 @@ func _draw() -> void:
 func _draw_gear() -> void:
 	var x := 10.0
 	var y := 116.0
-	_txt(Vector2(x, y + 7.0), player.weapon_name, 10, Color(0.85, 0.85, 0.9))
-	var frac := player.weapon_durability / Player.WEAPON_MAX
-	draw_rect(Rect2(x - 1.0, y + 10.0, 102.0, BAR_H - 1.0), Color(0, 0, 0, 0.7))
-	var col := Color("b8bcc4") if frac > 0.25 else Color("d64545")
-	draw_rect(Rect2(x, y + 11.0, 100.0 * frac, BAR_H - 3.0), col)
-	draw_texture(_scrap_icon, Vector2(x, y + 19.0))
-	_txt(Vector2(x + 11.0, y + 26.0), "x%d" % player.scrap, 10, Color(0.9, 0.9, 0.9))
+	var icon := ItemDefs.icon(player.weapon_id)
+	if icon != null:
+		draw_texture_rect(icon, Rect2(x, y - 4.0, 12, 12), false)
+	_txt(Vector2(x + 14.0, y + 7.0), player.weapon_name, 10, Color(0.85, 0.85, 0.9))
+	if player.weapon_is_gun:
+		var ammo_id: String = ItemDefs.ITEMS[player.weapon_id]["ammo"]
+		var n := player.ammo_in_reserve
+		var col := Color("f1d262") if n > 0 else Color("d64545")
+		var ai := ItemDefs.icon(ammo_id)
+		if ai != null:
+			draw_texture_rect(ai, Rect2(x, y + 9.0, 10, 10), false)
+		_txt(Vector2(x + 12.0, y + 18.0), "x%d" % n, 10, col)
+	else:
+		var frac := player.weapon_durability / maxf(1.0, player.weapon_max)
+		draw_rect(Rect2(x - 1.0, y + 10.0, 102.0, BAR_H - 1.0), Color(0, 0, 0, 0.7))
+		var col := Color("b8bcc4") if frac > 0.25 else Color("d64545")
+		draw_rect(Rect2(x, y + 11.0, 100.0 * frac, BAR_H - 3.0), col)
+	draw_texture(_scrap_icon, Vector2(x, y + 21.0))
+	_txt(Vector2(x + 11.0, y + 28.0), "x%d" % player.scrap, 10, Color(0.9, 0.9, 0.9))
 	if notes_total > 0:
-		_txt(Vector2(x + 54.0, y + 26.0), "Notas %d/%d" % [notes_found, notes_total], 10, Color("e8e2cf"))
+		_txt(Vector2(x + 54.0, y + 28.0), "Notas %d/%d" % [notes_found, notes_total], 10, Color("e8e2cf"))
 
 
 func _draw_clock(vs: Vector2) -> void:
@@ -143,7 +155,7 @@ func _draw_end(vs: Vector2) -> void:
 			12, Color(0.9, 0.9, 0.9), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
 	else:
 		_txt(Vector2(0, mid), "LABORATORIO HORIZONTE", 22, Color("f1c40f"), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
-		_txt(Vector2(0, mid + 20.0), "Fin del prototipo · Acto I de Mateo",
+		_txt(Vector2(0, mid + 20.0), "Fin del Acto I · Mateo  —  Acto II: «Lote H-7»",
 			13, Color(0.95, 0.95, 0.95), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
 		_txt(Vector2(0, mid + 36.0), "Toca la pantalla para seguir explorando",
 			12, Color(0.8, 0.8, 0.85), HORIZONTAL_ALIGNMENT_CENTER, vs.x)

@@ -4,15 +4,16 @@ extends Node2D
 ## en la autopista y una zona industrial al este. Genera el TileMap, las
 ## colisiones, los objetivos, los puntos de botin y los puntos de aparicion.
 
-const W := 128
+const W := 176
 const H := 96
 const TS := PixelArt.TILE
 const ZOMBIE_COUNT := 100
 
-const V_ROADS := [20, 52, 84]                 # x inicial de cada calle vertical
+const V_ROADS := [20, 52, 84, 116]                 # x inicial de cada calle vertical
 const H_ROADS := [[18, 3], [46, 8], [74, 3]]  # [y inicial, ancho]; la de 8 es la autopista (4 carriles)
 const HW := 1                                 # indice de la autopista en H_ROADS (la calle del medio)
 const ROAD_W := 3
+const LAB_X := 120                            # desde aqui empieza el complejo del laboratorio
 const INDUSTRIAL_X := 87                      # desde aqui empieza la zona industrial
 const TERRAIN_PATH := "res://assets/world/terrain.png"
 const ATLAS_COLS := 16
@@ -35,7 +36,16 @@ var decals: Array = []                 # manchas en el suelo: {kind, pos, a, rot
 var markings: StreetMarkings
 var noise := FastNoiseLite.new()
 var noise2 := FastNoiseLite.new()
-var fence := {}                        # cercado del refugio: {ring: Rect2i, gate: [x0, x1]}
+var fence := {}   # cercado del refugio (el ultimo de `fences` creado para el)                        # cercado del refugio: {ring: Rect2i, gate: [x0, x1]}
+var house_boxes: Array = []           # cajas de colision de muebles y tabiques (px de mundo)
+var refuge_zone := Rect2i()           # refugio + patio cercado: aqui no nacen zombis
+var lab_b := {}
+var lab_door_body: StaticBody2D
+var lab_door_rect := Rect2()
+var lab_terminal := Vector2.ZERO
+var fences: Array = []              # cercados: refugio y laboratorio
+var refuge_b := {}
+var hospital_b := {}
 var safe_rect := Rect2()       # refugio asegurado: los zombis pierden el rastro adentro
 
 var rng := RandomNumberGenerator.new()
@@ -94,6 +104,7 @@ func _is_road(x: int, y: int) -> bool:
 
 
 func generate(seed_value: int = 20261021) -> void:
+	add_to_group("world")
 	rng.seed = seed_value
 	tiles.resize(W * H)
 	solid.resize(W * H)
@@ -310,6 +321,11 @@ func _block_ranges() -> Array:
 func _place_buildings() -> void:
 	var residential := ["cabana", "casa", "chalet"]
 	for block in _block_ranges():
+		if block.position.x >= LAB_X and block.position.y == 22:
+			_build_house(Vector2i(130, 23), "laboratorio", block)
+			lab_b = buildings[buildings.size() - 1]
+			_build_fence_ring(lab_b, Rect2i(126, 22, 44, 23), "horizonte_sign")
+			continue
 		var industrial: bool = block.position.x >= INDUSTRIAL_X
 		var kinds: Array = ["taller"] if industrial else residential
 		var x: int = block.position.x + rng.randi_range(1, 3)
@@ -357,11 +373,19 @@ func _build_house(pos: Vector2i, kind: String, block: Rect2i) -> void:
 					_put(x, y, PixelArt.T_FLOOR)
 					_put_solid(x, y, 0)
 					floors.append(Vector2i(x, y))
-				"p":
+				"o", "p":
 					_put(x, y, PixelArt.T_FLOOR)
 					_put_solid(x, y, 0)
 				_:
 					pass
+	for bx in d["boxes"]:
+		var bb: Rect2 = bx
+		house_boxes.append(Rect2((Vector2(pos) + bb.position) * float(TS), bb.size * float(TS)))
+	if d.has("terminal"):
+		var tp: Vector2 = d["terminal"]
+		lab_terminal = (Vector2(pos) + tp) * float(TS)
+		var db: Rect2 = d["door_block"]
+		lab_door_rect = Rect2((Vector2(pos) + db.position) * float(TS), db.size * float(TS))
 	var door := Vector2i(pos.x + int(d["door_x"]), pos.y + h - 1)
 	# caminito desde la escalera del porche hasta la acera
 	var py := pos.y + h
@@ -411,11 +435,7 @@ func _pick_start_and_objectives() -> void:
 	start_pos = tile_center(Vector2i(21, 19))
 	if buildings.is_empty():
 		return
-	var lab: Dictionary = buildings[0]
-	for b in buildings:
-		var r: Rect2i = b["rect"]
-		if r.position.x > lab["rect"].position.x or (r.position.x == lab["rect"].position.x and r.size.x * r.size.y > lab["rect"].size.x * lab["rect"].size.y):
-			lab = b
+	var lab: Dictionary = lab_b if not lab_b.is_empty() else buildings[0]
 	objectives.append({"name": "Laboratorio Horizonte", "pos": lab["center"], "main": true})
 
 	var refuge: Dictionary = buildings[0]
@@ -434,8 +454,13 @@ func _pick_start_and_objectives() -> void:
 			hospital = b
 	objectives.append({"name": "Refugio", "pos": refuge["center"], "main": false})
 	_build_fence(refuge)
-	if hospital != refuge:
-		objectives.append({"name": "Hospital", "pos": hospital["center"], "main": false})
+	refuge_zone = fence["ring"] if not fence.is_empty() else (refuge["rect"] as Rect2i).grow(3)
+	start_pos = _free_spot_in(refuge)   # el jugador nace dentro del refugio, en suelo libre
+	if hospital == refuge:
+		hospital = buildings[(buildings.find(refuge) + 1) % buildings.size()]
+	hospital_b = hospital
+	refuge_b = refuge
+	objectives.append({"name": "Hospital", "pos": hospital["center"], "main": false})
 
 
 ## Anillo del cercado: 3 tiles de margen a los lados y arriba, y el patio delantero abajo.
@@ -459,10 +484,62 @@ func _ring_clear(b: Dictionary) -> bool:
 	return true
 
 
+func _free_spot_in(b: Dictionary) -> Vector2:
+	# BFS de baldosas desde la puerta: suelo libre de muebles y conectado con la entrada
+	var d: Dictionary = HouseData.TYPES[b["kind"]]
+	var rows: Array = d["rows"]
+	var r: Rect2i = b["rect"]
+	var walk: Dictionary = {}
+	for ly in int(d["h"]):
+		for lx in int(d["w"]):
+			if not (rows[ly][lx] in ["f", "o", "p"]):
+				continue
+			var t := Vector2i(r.position.x + lx, r.position.y + ly)
+			var c := tile_center(t)
+			var clear := true
+			for hb in house_boxes:
+				if (hb as Rect2).grow(9.0).has_point(c):
+					clear = false
+					break
+			if clear:
+				walk[t] = true
+	var q: Array = []
+	var seen: Dictionary = {}
+	var door := Vector2i(r.position.x + int(d["door_x"]), r.end.y - 1)
+	for dx in [0, 1]:
+		var t := door + Vector2i(dx, 0)
+		if walk.has(t):
+			seen[t] = true
+			q.append(t)
+	var i := 0
+	while i < q.size():
+		var cur: Vector2i = q[i]
+		i += 1
+		for dv in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = cur + dv
+			if walk.has(n) and not seen.has(n):
+				seen[n] = true
+				q.append(n)
+	var best: Vector2 = b["center"]
+	var best_d := INF
+	for t in q:
+		var c := tile_center(t)
+		var dd := c.distance_to(b["center"])
+		if dd < best_d:
+			best_d = dd
+			best = c
+	return best
+
+
 func _build_fence(b: Dictionary) -> void:
 	if not _ring_clear(b):
 		return
-	var ring := _fence_ring(b)
+	_build_fence_ring(b, _fence_ring(b), "refuge_sign")
+	fence = fences[fences.size() - 1]
+
+
+## Cercado rectangular con un portón de 4 tiles frente a la puerta de la casa b.
+func _build_fence_ring(b: Dictionary, ring: Rect2i, sign_name: String) -> void:
 	var door: Vector2i = b["door"]
 	var gx0 := door.x - 1
 	var gx1 := door.x + 2
@@ -478,18 +555,68 @@ func _build_fence(b: Dictionary) -> void:
 	for c in cells:
 		_put_solid(c.x, c.y, 1)
 		prop_block[c.y * W + c.x] = 1
-	fence = {"ring": ring, "gate": [gx0, gx1], "cells": cells}
+	fences.append({"ring": ring, "gate": [gx0, gx1], "cells": cells, "sign": sign_name})
 
 
 func _random_kind() -> String:
 	var r := rng.randf()
-	if r < 0.4:
+	if r < 0.30:
 		return "scrap"
-	if r < 0.6:
+	if r < 0.46:
 		return "food"
-	if r < 0.8:
+	if r < 0.62:
 		return "water"
-	return "bandage"
+	if r < 0.76:
+		return "bandage"
+	if r < 0.88:
+		return "balas"
+	if r < 0.93:
+		return "cartuchos"
+	if r < 0.96:
+		return "machete"
+	return "scrap"
+
+
+## Botin de historia: armas escondidas en casas concretas (cerca del refugio, hospital, zona industrial).
+func _place_special_loot(refuge: Dictionary, hospital: Dictionary) -> void:
+	var near: Array = buildings.duplicate()
+	near.erase(refuge)
+	near.sort_custom(func(a, b): return (a["center"] as Vector2).distance_to(refuge["center"]) < (b["center"] as Vector2).distance_to(refuge["center"]))
+	var kinds_near := ["machete", "hacha"]
+	for i in mini(kinds_near.size(), near.size()):
+		_loot_in(near[i], kinds_near[i])
+		_loot_in(near[i], "balas" if i == 1 else "bandage")
+	_loot_in(hospital, "pistola")
+	_loot_in(hospital, "tarjeta")
+	_loot_in(hospital, "balas")
+	_loot_in(hospital, "balas")
+	_loot_in(hospital, "bandage")
+	for b in buildings:
+		if b["kind"] == "taller" and (b["rect"] as Rect2i).position.x < LAB_X:
+			_loot_in(b, "escopeta")
+			_loot_in(b, "cartuchos")
+			_loot_in(b, "cartuchos")
+			break
+
+
+func _place_lab_loot() -> void:
+	if lab_b.is_empty():
+		return
+	for k in ["bandage", "bandage", "balas", "balas", "cartuchos", "food", "water"]:
+		_loot_in(lab_b, k)
+	# infectados dentro del laboratorio: uno cada pocos tiles de piso
+	var fl: Array = lab_b["floors"]
+	var i := 3
+	while i < fl.size():
+		zombie_spawns.append(tile_center(fl[i]))
+		i += 11
+
+
+func _loot_in(b: Dictionary, kind: String) -> void:
+	var fl: Array = b["floors"]
+	if fl.is_empty():
+		return
+	loot_spots.append({"pos": tile_center(fl[rng.randi() % fl.size()]), "kind": kind})
 
 
 func _pick_loot_and_spawns() -> void:
@@ -500,6 +627,8 @@ func _pick_loot_and_spawns() -> void:
 		for i in rng.randi_range(2, 4):
 			var t: Vector2i = fl[rng.randi() % fl.size()]
 			loot_spots.append({"pos": tile_center(t), "kind": _random_kind()})
+	_place_special_loot(refuge_b, hospital_b)
+	_place_lab_loot()
 	# manuales de supervivencia (ensenan una habilidad): uno en cada una de 5 casas al azar
 	var pool: Array = buildings.duplicate()
 	for i in mini(5, pool.size()):
@@ -524,7 +653,7 @@ func _pick_loot_and_spawns() -> void:
 		var t := Vector2i(rng.randi() % W, rng.randi() % H)
 		if is_solid_tile(t) or prop_block[t.y * W + t.x] == 1:
 			continue
-		if Vector2(t - start_t).length() < 22.0:
+		if refuge_zone.grow(2).has_point(t) or Vector2(t - start_t).length() < 14.0:
 			continue
 		zombie_spawns.append(tile_center(t))
 		count += 1
@@ -602,6 +731,20 @@ func _build_colliders() -> void:
 				_add_box(Vector2(x0 * TS, y * TS), Vector2((x - x0) * TS, TS))
 			else:
 				x += 1
+	for hb in house_boxes:
+		var r: Rect2 = hb
+		_add_box(r.position, r.size)
+	if lab_door_rect.size.x > 0.0:
+		lab_door_body = StaticBody2D.new()
+		lab_door_body.collision_layer = 1
+		lab_door_body.collision_mask = 0
+		var sh := CollisionShape2D.new()
+		var rs := RectangleShape2D.new()
+		rs.size = lab_door_rect.size
+		sh.shape = rs
+		sh.position = lab_door_rect.position + lab_door_rect.size * 0.5
+		lab_door_body.add_child(sh)
+		add_child(lab_door_body)
 	# limites del mundo
 	var s := size_px()
 	_add_box(Vector2(-64, -64), Vector2(s.x + 128, 64))
