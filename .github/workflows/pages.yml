@@ -13,18 +13,12 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: barichello/godot-ci:4.3
     steps:
       - uses: actions/checkout@v4
-      - name: Plantillas de exportacion
-        run: |
-          mkdir -p ~/.local/share/godot/export_templates
-          mv /root/.local/share/godot/export_templates/4.3.stable ~/.local/share/godot/export_templates/4.3.stable 2>/dev/null || true
       - name: Exportar Web
-        run: |
-          mkdir -p build/web
-          godot --headless --import || true
-          godot --headless --export-release "Web" build/web/index.html
+        run: EXPORT_ONLY=1 bash tools/web.sh
+      - name: Revisar salida
+        run: ls -la build/web
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
