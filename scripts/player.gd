@@ -522,7 +522,7 @@ func _draw_gun() -> void:
 	fx.set_meta("drawn", true)
 	var dirv := facing
 	var base := Vector2(0, -5) + dirv * 6.0
-	var long := weapon_id == "escopeta"
+	var long := weapon_id == "escopeta" or weapon_id == "fusil"
 	var n := 11.0 if long else 7.0
 	var tip := base + dirv * n
 	var side := Vector2(-dirv.y, dirv.x)

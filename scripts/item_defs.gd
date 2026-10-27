@@ -13,6 +13,7 @@ const ITEMS := {
 	"hacha": {"name": "Hacha de bombero", "desc": "Cuerpo a cuerpo lento pero devastador. Se desgasta.", "max": 1, "weapon": "melee", "dmg": 34.0, "cd": 0.7, "range": 46.0, "dur": 32.0, "noise": 100.0},
 	"pistola": {"name": "Pistola", "desc": "Dispara balas. Precisa, pero el disparo se oye lejos.", "max": 1, "weapon": "gun", "ammo": "balas", "dmg": 34.0, "cd": 0.34, "range": 230.0, "pellets": 1, "spread": 0.04, "noise": 280.0},
 	"escopeta": {"name": "Escopeta", "desc": "Dispara cartuchos. Devasta de cerca; muy ruidosa.", "max": 1, "weapon": "gun", "ammo": "cartuchos", "dmg": 17.0, "cd": 0.95, "range": 120.0, "pellets": 5, "spread": 0.26, "noise": 340.0},
+	"fusil": {"name": "Fusil de asalto", "desc": "Dispara balas muy rápido. Arma militar; hace muchísimo ruido.", "max": 1, "weapon": "gun", "ammo": "balas", "dmg": 26.0, "cd": 0.13, "range": 260.0, "pellets": 1, "spread": 0.07, "noise": 380.0},
 	"balas": {"name": "Balas", "desc": "Munición de la pistola.", "max": 18},
 	"cartuchos": {"name": "Cartuchos", "desc": "Munición de la escopeta.", "max": 8},
 	"tarjeta": {"name": "Tarjeta Horizonte", "desc": "Acceso de nivel 3. Abre la puerta del laboratorio.", "max": 1, "key": true},

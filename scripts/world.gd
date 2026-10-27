@@ -40,6 +40,8 @@ var fence := {}   # cercado del refugio (el ultimo de `fences` creado para el)  
 var house_boxes: Array = []           # cajas de colision de muebles y tabiques (px de mundo)
 var refuge_zone := Rect2i()           # refugio + patio cercado: aqui no nacen zombis
 var lab_b := {}
+var base_b := {}
+var base_ring := Rect2i()
 var lab_door_body: StaticBody2D
 var lab_door_rect := Rect2()
 var lab_terminal := Vector2.ZERO
@@ -319,17 +321,43 @@ func _block_ranges() -> Array:
 ## Vecindarios: en cada manzana, una fila de casas con la fachada hacia la calle del sur,
 ## separadas por patios, con un caminito de la puerta hasta la acera.
 func _place_buildings() -> void:
-	var residential := ["cabana", "casa", "chalet"]
+	var residential := ["cabana", "casa", "chalet", "casita"]
 	for block in _block_ranges():
 		if block.position.x >= LAB_X and block.position.y == 22:
 			_build_house(Vector2i(130, 23), "laboratorio", block)
 			lab_b = buildings[buildings.size() - 1]
 			_build_fence_ring(lab_b, Rect2i(126, 22, 44, 23), "horizonte_sign")
 			continue
+		if block.position.x >= LAB_X and block.position.y == 55:
+			_build_base(block)
+			continue
 		var industrial: bool = block.position.x >= INDUSTRIAL_X
-		var kinds: Array = ["taller"] if industrial else residential
-		var x: int = block.position.x + rng.randi_range(1, 3)
+		var downtown: bool = block.position.x >= 56 and not industrial
+		var kinds: Array = ["taller"] if industrial else residential.duplicate()
+		var forced: Array = []
+		if downtown:
+			kinds = ["tienda", "casita", "apartamentos", "casa"]
+			match block.position.y:
+				22:
+					forced = ["iglesia"]
+				55:
+					forced = ["supermercado"]
+				78:
+					forced = ["comisaria"]
+				_:
+					forced = ["tienda", "casita"]
+		elif not industrial and block.position.x >= 24:
+			kinds.append("apartamentos")
+		elif industrial and block.position.x < LAB_X and block.position.y == 78:
+			forced = ["cancha"]
+		var x: int = block.position.x + rng.randi_range(1, 2)
 		var count := 0
+		for fk in forced:
+			var fd: Dictionary = HouseData.TYPES[fk]
+			if x + fd["w"] <= block.end.x and fd["h"] + 4 <= block.size.y:
+				_place_in_row(Vector2i(x, 0), fk, block)
+				count += 1
+				x += fd["w"] + rng.randi_range(3, 5)
 		var guard := 0
 		while guard < 8:
 			guard += 1
@@ -344,14 +372,31 @@ func _place_buildings() -> void:
 				x += rng.randi_range(4, 7)   # un lote vacio
 				continue
 			var kind: String = options[rng.randi() % options.size()]
-			var d: Dictionary = HouseData.TYPES[kind]
-			var bottom: int = block.end.y - rng.randi_range(3, 4)      # patio delantero
-			var y: int = bottom - d["h"] + 1
-			if y < block.position.y:
-				y = block.position.y
-			_build_house(Vector2i(x, y), kind, block)
+			var d2: Dictionary = HouseData.TYPES[kind]
+			_place_in_row(Vector2i(x, 0), kind, block)
 			count += 1
-			x += d["w"] + rng.randi_range(3, 5)
+			x += d2["w"] + rng.randi_range(3, 5)
+
+
+func _place_in_row(at: Vector2i, kind: String, block: Rect2i) -> void:
+	var d: Dictionary = HouseData.TYPES[kind]
+	var bottom: int = block.end.y - rng.randi_range(3, 4)      # patio delantero
+	var y: int = bottom - d["h"] + 1
+	if y < block.position.y:
+		y = block.position.y
+	_build_house(Vector2i(at.x, y), kind, block)
+
+
+## Base militar: patio de concreto cercado con un cuartel; muchos infectados y armas serias.
+func _build_base(block: Rect2i) -> void:
+	var ring := Rect2i(131, 55, 36, 18)
+	base_ring = ring
+	for yy in range(ring.position.y + 1, ring.end.y - 1):
+		for xx in range(ring.position.x + 1, ring.end.x - 1):
+			_put_side(xx, yy)
+	_build_house(Vector2i(138, 57), "cuartel", block)
+	base_b = buildings[buildings.size() - 1]
+	_build_fence_ring(base_b, ring, "base_sign")
 
 
 func _build_house(pos: Vector2i, kind: String, block: Rect2i) -> void:
@@ -443,6 +488,8 @@ func _pick_start_and_objectives() -> void:
 	var best_refuge := INF
 	var best_hosp := INF
 	for b in buildings:
+		if not (b["kind"] in ["cabana", "casa", "chalet", "casita"]):
+			continue
 		var c: Vector2 = b["center"]
 		var d1 := c.distance_to(Vector2(30, 30) * TS)
 		var d2 := c.distance_to(Vector2(68, 62) * TS)
@@ -461,6 +508,8 @@ func _pick_start_and_objectives() -> void:
 	hospital_b = hospital
 	refuge_b = refuge
 	objectives.append({"name": "Hospital", "pos": hospital["center"], "main": false})
+	if not base_b.is_empty():
+		objectives.append({"name": "Base militar", "pos": base_b["center"], "main": false})
 
 
 ## Anillo del cercado: 3 tiles de margen a los lados y arriba, y el patio delantero abajo.
@@ -599,6 +648,43 @@ func _place_special_loot(refuge: Dictionary, hospital: Dictionary) -> void:
 			break
 
 
+func _place_civic_loot() -> void:
+	var table := {
+		"supermercado": ["food", "food", "food", "water", "water", "scrap", "bandage"],
+		"comisaria": ["pistola", "balas", "balas", "balas", "bandage", "bandage"],
+		"iglesia": ["bandage", "bandage", "water"],
+		"tienda": ["food", "water", "scrap"],
+		"apartamentos": ["food", "scrap", "bandage", "balas"],
+	}
+	for b in buildings:
+		var k: String = b["kind"]
+		if table.has(k):
+			for it in table[k]:
+				_loot_in(b, it)
+	if not base_b.is_empty():
+		for it in ["fusil", "balas", "balas", "balas", "balas", "cartuchos", "cartuchos", "bandage", "bandage", "food", "water"]:
+			_loot_in(base_b, it)
+		for it in ["balas", "cartuchos", "bandage", "scrap"]:
+			loot_spots.append({"pos": _yard_spot(), "kind": it})
+		var fl: Array = base_b["floors"]
+		var i := 5
+		while i < fl.size():
+			zombie_spawns.append(tile_center(fl[i]))
+			i += 9
+		for _n in 12:
+			zombie_spawns.append(_yard_spot())
+
+
+func _yard_spot() -> Vector2:
+	var r := base_ring
+	for _t in 40:
+		var t := Vector2i(rng.randi_range(r.position.x + 2, r.end.x - 3), rng.randi_range(r.position.y + 2, r.end.y - 3))
+		var c := tile_center(t)
+		if solid[t.y * W + t.x] == 0 and not (base_b["rect"] as Rect2i).grow(1).has_point(t):
+			return c
+	return tile_center(r.get_center())
+
+
 func _place_lab_loot() -> void:
 	if lab_b.is_empty():
 		return
@@ -629,6 +715,7 @@ func _pick_loot_and_spawns() -> void:
 			loot_spots.append({"pos": tile_center(t), "kind": _random_kind()})
 	_place_special_loot(refuge_b, hospital_b)
 	_place_lab_loot()
+	_place_civic_loot()
 	# manuales de supervivencia (ensenan una habilidad): uno en cada una de 5 casas al azar
 	var pool: Array = buildings.duplicate()
 	for i in mini(5, pool.size()):

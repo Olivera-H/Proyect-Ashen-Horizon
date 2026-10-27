@@ -160,6 +160,12 @@ def main():
     lab["boxes"], reach = audit_houses.relax(lab)
     print("   laboratorio transitable: %.0f%%" % (100 * reach))
     data["laboratorio"] = lab
+    import gen_buildings
+    _bi, bdata = gen_buildings.build()
+    for nm, bd in bdata.items():
+        bd["boxes"], rr = audit_houses.relax(bd)
+        print("   %s transitable: %.0f%%" % (nm, 100 * rr))
+        data[nm] = bd
     print("laboratorio", _imgs["laboratorio_interior"].size)
     write_gd(data)
 

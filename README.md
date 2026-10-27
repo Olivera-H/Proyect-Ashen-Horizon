@@ -140,3 +140,10 @@ Ver [docs/DISENO.md](docs/DISENO.md).
 - **Mapa**: 176x96 tiles; nueva carretera vertical y el **Laboratorio Horizonte** (compuesto cercado, 36x20 tiles) al noreste. El jugador nace en el refugio y ahí no aparecen zombis.
 - **Hitboxes de interiores**: `tools/audit_houses.py` comprueba que el círculo del jugador pueda recorrer cada interior y ajusta los muebles (`python3 tools/gen_houses.py` regenera todo). El laboratorio se dibuja con `tools/gen_lab.py`, así arte y colisiones coinciden.
 - **Historia**: radio de Lena → hospital (Tarjeta Horizonte) → puerta del laboratorio → terminal «Lote H-7» → gancho para el Acto II.
+
+## Más edificios (ciudad)
+
+Generados por código en `tools/gen_buildings.py` (arte y colisiones salen de la misma lista de muebles; `gen_houses.py` los integra y verifica que se puedan recorrer):
+- **Supermercado**, **comisaría** (celdas y armero), **iglesia**, **tienda**, **casita** y **apartamentos** en el casco urbano y los barrios.
+- **Cancha** de fútbol cercada en la zona industrial.
+- **Base militar** (cuartel con literas y armero, patio de concreto cercado, muchos infectados) al sureste: tiene el **fusil de asalto** y munición.
