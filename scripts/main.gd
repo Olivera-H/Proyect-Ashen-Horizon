@@ -61,10 +61,10 @@ func _ready() -> void:
 	add_child(world)
 	world.generate()
 
-	pickup_root = Node2D.new()
-	add_child(pickup_root)
 	var houses_floor := Node2D.new()
 	add_child(houses_floor)
+	pickup_root = Node2D.new()          # el botin se dibuja sobre el interior de las casas
+	add_child(pickup_root)
 	ents = Node2D.new()
 	ents.y_sort_enabled = true
 	add_child(ents)
@@ -73,6 +73,7 @@ func _ready() -> void:
 	add_child(houses)
 	houses.setup(world, houses_floor, ents)
 
+	add_child(Music.new())
 	_find_rects()
 	_spawn_player()
 	_spawn_zombies()
@@ -156,7 +157,33 @@ func _add_pickup(pos: Vector2, kind: String, text: String) -> void:
 		s.scale = Vector2(0.75, 0.75)
 	s.position = pos
 	pickup_root.add_child(s)
+	# brillo suave que late, para que el botin se vea sobre cualquier suelo
+	var glow := Sprite2D.new()
+	glow.texture = _glow_texture()
+	glow.show_behind_parent = true
+	var mat := CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	glow.material = mat
+	glow.modulate = Color(1.0, 0.92, 0.6, 0.55) if kind != "note" else Color(0.7, 0.9, 1.0, 0.5)
+	s.add_child(glow)
+	var tw := s.create_tween().set_loops()
+	tw.tween_property(glow, "scale", Vector2(1.25, 1.25), 0.9).from(Vector2(0.8, 0.8)).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(glow, "scale", Vector2(0.8, 0.8), 0.9).set_trans(Tween.TRANS_SINE)
 	_pickups.append({"node": s, "kind": kind, "text": text})
+
+
+var _glow_tex: Texture2D
+
+
+func _glow_texture() -> Texture2D:
+	if _glow_tex == null:
+		var img := Image.create(24, 24, false, Image.FORMAT_RGBA8)
+		for y in 24:
+			for x in 24:
+				var d := Vector2(x - 11.5, y - 11.5).length() / 11.5
+				img.set_pixel(x, y, Color(1, 1, 1, clampf(1.0 - d, 0.0, 1.0) * 0.8))
+		_glow_tex = ImageTexture.create_from_image(img)
+	return _glow_tex
 
 
 func _spawn_pickups() -> void:

@@ -162,3 +162,8 @@ Generados por código en `tools/gen_buildings.py` (arte y colisiones salen de la
 4. Al tomarlo suena la alarma y llega una horda; hay que volver al refugio con el suero.
 
 Los edificios generados por código llevan texturas de material (ladrillo, tablones, concreto), decoración interior, sombra proyectada en el suelo y acabado con ruido/luz (`tools/gen_polish.py`). Buzones y arbustos ya no tienen colisión.
+
+## Música y botín visible
+
+- `scripts/music.gd`: 4 pistas en `assets/audio/music/` que suenan al azar con silencios de 60–150 s entre una y otra (nunca seguidas ni repetidas), con fundido de entrada y salida.
+- El botín se dibuja sobre el interior de los edificios y tiene un brillo que late, para verlo en cualquier suelo.
