@@ -302,7 +302,11 @@ func _spawn_blood(amount: int, dir: Vector2) -> void:
 
 
 ## Charco de sangre en el suelo que se desvanece solo.
+static var kills := 0
+
+
 func _leave_corpse() -> void:
+	Zombie.kills += 1
 	if world == null:
 		return
 	var d := Sprite2D.new()

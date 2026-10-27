@@ -18,6 +18,13 @@ var warning := ""         # aviso de peligro ambiental (aire toxico, lluvia acid
 var notes_found := 0
 var notes_total := 0
 var end_kind := ""        # "" | "dead" | "won"
+var end_age := 0.0
+var end_ready := false
+var end_cause := ""
+var end_tip := ""
+var end_time := 0.0
+var end_checkpoint := Vector2i.ZERO
+var _vignette: Texture2D
 
 var _font: Font
 var _toasts: Array = []   # [texto, tiempo_restante, duracion]
@@ -56,6 +63,7 @@ func toast(text: String, seconds: float = 3.0) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	end_age = end_age + delta if end_kind != "" else 0.0
 	var vs := get_viewport_rect().size
 	for i in range(_toasts.size() - 1, -1, -1):
 		_toasts[i][1] -= delta
@@ -146,16 +154,83 @@ func _draw_toasts(vs: Vector2) -> void:
 			HORIZONTAL_ALIGNMENT_CENTER, width, 11, -1, Color(1, 1, 1, alpha))
 
 
+func _vignette_tex() -> Texture2D:
+	if _vignette == null:
+		var img := Image.create(64, 36, false, Image.FORMAT_RGBA8)
+		for y in 36:
+			for x in 64:
+				var d := Vector2((x - 31.5) / 32.0, (y - 17.5) / 18.0).length()
+				img.set_pixel(x, y, Color(1, 1, 1, clampf((d - 0.35) / 0.9, 0.0, 1.0)))
+		_vignette = ImageTexture.create_from_image(img)
+	return _vignette
+
+
+## Texto con sombra dura para que se lea sobre cualquier fondo.
+func _txt_sh(pos: Vector2, s: String, size: int, col: Color, w: float) -> void:
+	_txt(pos + Vector2(1, 1), s, size, Color(0, 0, 0, col.a * 0.9), HORIZONTAL_ALIGNMENT_CENTER, w)
+	_txt(pos, s, size, col, HORIZONTAL_ALIGNMENT_CENTER, w)
+
+
 func _draw_end(vs: Vector2) -> void:
-	draw_rect(Rect2(Vector2.ZERO, vs), Color(0, 0, 0, 0.62))
-	var mid := vs.y * 0.42
+	var fade := clampf(end_age / 1.4, 0.0, 1.0)
 	if end_kind == "dead":
-		_txt(Vector2(0, mid), "HAS MUERTO", 28, Color("d64545"), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
-		_txt(Vector2(0, mid + 22.0), "Toca la pantalla para reaparecer en el último refugio",
-			12, Color(0.9, 0.9, 0.9), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
+		_draw_dead(vs, fade)
 	else:
-		_txt(Vector2(0, mid), "SUERO H-7", 22, Color("f1c40f"), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
-		_txt(Vector2(0, mid + 20.0), "Fin del Acto II · Suero H-7  —  Acto III: «La otra voz»",
-			13, Color(0.95, 0.95, 0.95), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
-		_txt(Vector2(0, mid + 36.0), "Toca la pantalla para seguir explorando",
-			12, Color(0.8, 0.8, 0.85), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
+		draw_rect(Rect2(Vector2.ZERO, vs), Color(0, 0, 0, 0.62 * fade))
+		var mid := vs.y * 0.42
+		_txt_sh(Vector2(0, mid), "SUERO H-7", 22, Color(0.945, 0.769, 0.059, fade), vs.x)
+		_txt_sh(Vector2(0, mid + 20.0), "Fin del Acto II · Suero H-7  —  Acto III: «La otra voz»", 13, Color(0.95, 0.95, 0.95, fade), vs.x)
+		_txt_sh(Vector2(0, mid + 36.0), "Toca la pantalla para seguir explorando", 12, Color(0.8, 0.8, 0.85, fade), vs.x)
+
+
+func _draw_dead(vs: Vector2, fade: float) -> void:
+	# oscurece y tiñe de rojo, con viñeta que se cierra
+	draw_rect(Rect2(Vector2.ZERO, vs), Color(0.04, 0.0, 0.0, 0.72 * fade))
+	draw_texture_rect(_vignette_tex(), Rect2(Vector2.ZERO, vs), false, Color(0.55, 0.0, 0.02, 0.85 * fade))
+	var cx := vs.x * 0.5
+	var top := vs.y * 0.2
+	# latido que se apaga: linea de electrocardiograma plana
+	var ly := top + 6.0
+	var pts := PackedVector2Array()
+	var x0 := cx - 70.0
+	for i in 141:
+		var x := float(i)
+		var y := 0.0
+		if x < 40.0:
+			var m := fmod(x, 20.0)
+			y = -9.0 * exp(-pow(m - 10.0, 2.0) / 3.0) if end_age < 1.2 else 0.0
+		pts.append(Vector2(x0 + x, ly + y))
+	draw_polyline(pts, Color(0.85, 0.15, 0.15, 0.7 * fade), 1.0)
+	# titulo que crece, con temblor y goteo de sangre
+	var k := clampf((end_age - 0.3) / 0.7, 0.0, 1.0)
+	var size := int(round(lerpf(46.0, 34.0, k * k * (3.0 - 2.0 * k))))
+	var shake := Vector2(sin(_t * 41.0), cos(_t * 37.0)) * (1.0 - k) * 2.0
+	var ty := top + 22.0
+	_txt_sh(Vector2(0, ty) + shake, "HAS MUERTO", size, Color(0.84, 0.17, 0.17, k), vs.x)
+	var drip := clampf((end_age - 0.9) / 1.6, 0.0, 1.0)
+	for i in 11:
+		var dx := cx + (float(i) - 5.0) * 17.0 + sin(float(i) * 2.3) * 5.0
+		var ln := (10.0 + float((i * 13) % 26)) * drip
+		draw_rect(Rect2(dx, ty + float(size) + 2.0, 2.0, ln), Color(0.6, 0.05, 0.05, 0.9 * k))
+		draw_circle(Vector2(dx + 1.0, ty + float(size) + 2.0 + ln), 2.0, Color(0.6, 0.05, 0.05, 0.9 * k * drip))
+	var a := clampf((end_age - 1.0) / 0.8, 0.0, 1.0)
+	_txt_sh(Vector2(0, ty + float(size) + 40.0), end_cause, 12, Color(0.92, 0.82, 0.82, a), vs.x)
+	# panel con estadisticas
+	var py := ty + float(size) + 62.0
+	var pw := 340.0
+	var panel := Rect2(cx - pw * 0.5, py, pw, 52.0)
+	draw_rect(panel, Color(0, 0, 0, 0.5 * a))
+	draw_rect(panel, Color(0.7, 0.15, 0.15, 0.7 * a), false, 1.0)
+	var secs := int(end_time)
+	var stats := "Sobreviviste %d:%02d   ·   Abatidos: %d   ·   Notas: %d/%d" % [secs / 60, secs % 60, Zombie.kills, notes_found, notes_total]
+	_txt_sh(Vector2(0, py + 8.0), stats, 10, Color(0.95, 0.9, 0.9, a), vs.x)
+	_txt_sh(Vector2(0, py + 24.0), "Último refugio guardado", 10, Color(0.6, 0.85, 0.65, a), vs.x)
+	_txt_sh(Vector2(0, py + 37.0), "Consejo: " + end_tip, 9, Color(0.85, 0.85, 0.7, a * 0.9), vs.x)
+	# boton de reaparecer
+	if end_ready:
+		var pulse := 0.65 + 0.35 * sin(_t * 4.0)
+		var bw := 150.0
+		var btn := Rect2(cx - bw * 0.5, py + 64.0, bw, 22.0)
+		draw_rect(btn, Color(0.5, 0.05, 0.05, 0.85 * pulse))
+		draw_rect(btn, Color(1.0, 0.45, 0.4, pulse), false, 1.0)
+		_txt_sh(Vector2(0, py + 76.0), "TOCA PARA REAPARECER", 11, Color(1, 0.95, 0.9, pulse), vs.x)

@@ -172,3 +172,8 @@ Los edificios generados por código llevan texturas de material (ladrillo, tablo
 
 - `scripts/music.gd`: música de fondo (`assets/audio/music/`). Suena una pista al azar cada 60–150 s de silencio (la primera a los 15 s), nunca la misma dos veces seguidas, con fundido de entrada y salida.
 - El botín dentro de los edificios se dibuja sobre el interior y tiene un brillo que late.
+
+## Pantalla de muerte y calidad de edificios
+
+- Pantalla de muerte: fundido rojo con viñeta, título con goteo de sangre, causa de la muerte, tiempo sobrevivido, zombis abatidos, notas, consejo aleatorio y botón pulsante para reaparecer.
+- Edificios: ampliación Scale2x (diagonales suaves), sombras de muebles, alero con sombra, canalones, farol y felpudo en la puerta, techos a dos aguas con luz/sombra y chimenea.

@@ -23,6 +23,7 @@ var hunger := 100.0     # 100 = lleno
 var thirst := 100.0     # 100 = hidratado
 var infection := 0.0    # 0 = sano, 100 = muerte
 var inventory := Inventory.new()
+var last_env_hit_ms := -100000
 var scrap: int:
 	get:
 		return inventory.count("scrap")
@@ -424,6 +425,7 @@ func take_damage(amount: float, from_pos: Vector2) -> void:
 
 ## Dano continuo del ambiente (lluvia acida, aire toxico).
 func environmental_damage(amount: float) -> void:
+	last_env_hit_ms = Time.get_ticks_msec()
 	_hurt_over_time(amount)
 
 

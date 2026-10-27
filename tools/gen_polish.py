@@ -6,9 +6,36 @@ import random
 from PIL import Image, ImageFilter
 
 
+def scale2x(im):
+    """Ampliacion 2x EPX/Scale2x: mantiene el pixel art nitido pero suaviza las diagonales."""
+    import numpy as np
+    a = np.array(im.convert("RGBA"))
+    h, w = a.shape[:2]
+    p = np.pad(a, ((1, 1), (1, 1), (0, 0)), mode="edge")
+    P = a
+    A, D = p[0:h, 1:w + 1], p[2:h + 2, 1:w + 1]
+    C, B = p[1:h + 1, 0:w], p[1:h + 1, 2:w + 2]
+
+    def eq(x, y):
+        return np.all(x == y, axis=2)
+
+    out = np.zeros((h * 2, w * 2, 4), dtype=np.uint8)
+    o1, o2, o3, o4 = P.copy(), P.copy(), P.copy(), P.copy()
+    m1 = eq(C, A) & ~eq(C, D) & ~eq(A, B)
+    m2 = eq(A, B) & ~eq(A, C) & ~eq(B, D)
+    m3 = eq(D, C) & ~eq(D, B) & ~eq(C, A)
+    m4 = eq(B, D) & ~eq(B, A) & ~eq(D, C)
+    o1[m1] = A[m1]
+    o2[m2] = B[m2]
+    o3[m3] = C[m3]
+    o4[m4] = D[m4]
+    out[0::2, 0::2], out[0::2, 1::2], out[1::2, 0::2], out[1::2, 1::2] = o1, o2, o3, o4
+    return Image.fromarray(out, "RGBA").copy()
+
+
 def polish(im, seed=1, amt=5):
-    """im: RGBA a 16 px/tile. Devuelve la imagen ampliada 2x (vecino mas cercano) con textura."""
-    big = im.resize((im.width * 2, im.height * 2), Image.NEAREST)
+    """im: RGBA a 16 px/tile. Devuelve la imagen ampliada 2x (Scale2x) con textura."""
+    big = scale2x(im)
     px = big.load()
     rnd = random.Random(seed)
     W, H = big.size

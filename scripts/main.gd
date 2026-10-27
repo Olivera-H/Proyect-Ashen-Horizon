@@ -45,6 +45,7 @@ var _event_t := 70.0
 var _in_refuge := false
 var _warned_toxic := false
 var _mask_told := false
+var _play_time := 0.0
 var _drop_goal := {}
 var _drop_flying := false
 var _drop_landed := false
@@ -229,7 +230,9 @@ func _process(delta: float) -> void:
 	_update_daylight(delta)
 	hud.clock = time_of_day
 	hud.raining = weather.rain > 0.3
+	hud.end_ready = _end_t <= 0.0
 	if _state == "play":
+		_play_time += delta
 		_update_weather(delta)
 		_check_pickups()
 		_check_refuge(delta)
@@ -464,10 +467,25 @@ func _check_goal() -> void:
 			hud.toast("Recogiste la caja de suministros.", 3.0)
 
 
+const TIPS := [
+	"Los disparos se oyen muy lejos: úsalos solo cuando haga falta.",
+	"Descansa en el refugio para curarte y guardar tu progreso.",
+	"Entra a los edificios para librarte de la lluvia ácida y del aire tóxico.",
+	"La máscara antigás está en la base militar, al sureste.",
+	"Repara tu arma con chatarra antes de que se rompa.",
+	"Los corredores te alcanzan: esquiva justo cuando te ataquen.",
+	"Apaga la linterna para pasar desapercibido entre los infectados.",
+]
+
+
 func _on_player_died() -> void:
 	_state = "dead"
 	_end_t = 1.5
 	hud.end_kind = "dead"
+	hud.end_cause = "El aire contaminado te consumió." if Time.get_ticks_msec() - player.last_env_hit_ms < 800 else "Los infectados te alcanzaron."
+	hud.end_tip = TIPS[randi() % TIPS.size()]
+	hud.end_time = _play_time
+	hud.end_checkpoint = world.to_tile(checkpoint)
 
 
 # ------------------------------------------------------- eventos aleatorios

@@ -366,6 +366,17 @@ def facade(d, rnd, spec, p, roof=False):
         d.rectangle([sx, sy, sx + tw_ + 9, sy + 11], outline=OL)
         gp.text(d._image, sx + 5, sy + 3, s, p["sign_fg"])
         R(d, sx + 2, sy + 1, sx + tw_ + 7, sy + 1, shade(p["sign_bg"], 50))
+    # alero: sombra bajo el borde del techo y canalon con bajante
+    for k, a in enumerate((70, 46, 24)):
+        R(d, 0, Y0 + 1 + k * 2, W - 1, Y0 + 2 + k * 2, shade(p["wall"], -a // 2))
+    R(d, 0, Y0 - 1, W - 1, Y0, shade(p["wall_d"], -10))
+    R(d, 3, Y0 + 3, 5, Y0 + 3 * TS - 6, C("#6a7078")); R(d, 3, Y0 + 3, 3, Y0 + 3 * TS - 6, C("#9aa0aa"))
+    R(d, W - 6, Y0 + 3, W - 4, Y0 + 3 * TS - 6, C("#6a7078")); R(d, W - 6, Y0 + 3, W - 6, Y0 + 3 * TS - 6, C("#9aa0aa"))
+    # farol sobre la puerta y felpudo
+    lx = dx1 + 8
+    R(d, lx, Y0 + 14, lx + 2, Y0 + 20, C("#3a3d44")); R(d, lx - 1, Y0 + 20, lx + 3, Y0 + 23, C("#f2dc9a"))
+    R(d, lx - 2, Y0 + 23, lx + 4, Y0 + 24, C("#f2dc9a", 90))
+    R(d, dx0 + 2, Y0 + 3 * TS, dx1 - 2, Y0 + 3 * TS + 3, C("#5a4a3a")); R(d, dx0 + 3, Y0 + 3 * TS + 1, dx1 - 3, Y0 + 3 * TS + 1, C("#7a6650"))
     # porche
     px0, px1 = dx0 - 8, dx1 + 8
     py = (fy + 3) * TS
@@ -397,6 +408,15 @@ def interior_image(spec, rnd):
         R(d, T(x), T(y), T(x + w) - 1, T(y + h) - 1, p["wall"])
         R(d, T(x + w) - 1, T(y), T(x + w) - 1, T(y + h) - 1, p["wall_d"])
         d.rectangle([T(x), T(y), T(x + w) - 1, T(y + h) - 1], outline=OL)
+    # sombras suaves de muebles y tabiques sobre el piso
+    ov = Image.new("RGBA", im.size, (0, 0, 0, 0))
+    od = ImageDraw.Draw(ov)
+    for (x, y, w, h) in [tuple(wl) for wl in spec["walls"]] + [(f[1], f[2], f[3], f[4]) for f in spec["furn"]]:
+        od.rectangle([T(x) + 2, T(y) + 3, T(x + w) + 3, T(y + h) + 4], fill=(0, 0, 0, 62))
+    od.rectangle([0, T(3), im.width, T(3) + 5], fill=(0, 0, 0, 46))      # pared del fondo proyecta sombra
+    im.alpha_composite(ov)
+    d = ImageDraw.Draw(im)
+    d._image = im
     for (kind, x, y, w, h) in sorted(spec["furn"], key=lambda f: f[2] + f[4]):
         draw_furn(d, kind, x, y, w, h, rnd, p)
     x0, y0, x1, y1 = spec["floors"][0]
@@ -429,8 +449,19 @@ def roof_image(spec, rnd):
                 d.line([(xx, y), (xx, y + 5)], fill=shade(p["roof"], -22))
             for xx in range(rnd.randint(0, 11), W, 37):
                 R(d, xx, y + 1, xx + 4, y + 4, shade(p["roof"], rnd.choice((-18, 14))))
-        R(d, 0, ridge - 2, W - 1, ridge + 1, shade(p["roof"], 36))
+        ov = Image.new("RGBA", im.size, (0, 0, 0, 0))
+        od = ImageDraw.Draw(ov)
+        od.rectangle([0, 0, W - 1, ridge - 1], fill=(255, 255, 255, 26))     # agua que recibe luz
+        od.rectangle([0, ridge + 2, W - 1, fh - 1], fill=(0, 0, 0, 40))      # agua en sombra
+        im.alpha_composite(ov)
+        d = ImageDraw.Draw(im)
+        d._image = im
+        R(d, 0, ridge - 2, W - 1, ridge + 1, shade(p["roof"], 44))
+        R(d, 0, ridge + 2, W - 1, ridge + 2, shade(p["roof_d"], -20))
         R(d, 0, fh - 6, W - 1, fh - 1, p["roof_d"])
+        cx0 = W // 5
+        R(d, cx0, ridge - 18, cx0 + 11, ridge - 1, C("#8a5a46")); d.rectangle([cx0, ridge - 18, cx0 + 11, ridge - 1], outline=OL)
+        R(d, cx0 - 1, ridge - 20, cx0 + 12, ridge - 18, C("#4a4a4e"))
     elif kind == "church":
         for y in range(0, fh, 6):
             d.line([(0, y), (W - 1, y)], fill=p["roof_d"])
