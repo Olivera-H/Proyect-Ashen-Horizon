@@ -135,6 +135,10 @@ def base_sign():
     return plate_sign("BASE MILITAR", "#3a4529", "#c8b030")
 
 
+def zero_sign():
+    return plate_sign("ZONA CERO", "#4a1f1f", "#d8362b")
+
+
 def mailbox():
     img = gp.new(10, 20)
     d = ImageDraw.Draw(img)
@@ -151,7 +155,7 @@ def build():
     return {
         "fence_h_a": fence_h(0), "fence_h_b": fence_h(1), "fence_h_c": fence_h(2),
         "fence_v": fence_v(), "fence_post": fence_post(), "gate_post": gate_post(),
-        "refuge_sign": refuge_sign(), "horizonte_sign": horizonte_sign(), "base_sign": base_sign(), "mailbox": mailbox(),
+        "refuge_sign": refuge_sign(), "horizonte_sign": horizonte_sign(), "base_sign": base_sign(), "zero_sign": zero_sign(), "mailbox": mailbox(),
     }
 
 

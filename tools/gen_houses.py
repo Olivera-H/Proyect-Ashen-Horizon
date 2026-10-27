@@ -168,6 +168,15 @@ def main():
         data[nm] = bd
     print("laboratorio", _imgs["laboratorio_interior"].size)
     write_gd(data)
+    import gen_polish
+    for kind in data:
+        roof = Image.open(f"{OUT}/{kind}_roof.png").convert("RGBA")
+        sh = gen_polish.shadow_from(roof)
+        path = f"{OUT}/{kind}_shadow.png"
+        if sh is not None:
+            sh.save(path)
+        elif os.path.exists(path):
+            os.remove(path)
 
 
 if __name__ == "__main__":

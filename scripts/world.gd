@@ -41,6 +41,10 @@ var fence := {}   # cercado del refugio (el ultimo de `fences` creado para el)  
 var house_boxes: Array = []           # cajas de colision de muebles y tabiques (px de mundo)
 var refuge_zone := Rect2i()           # refugio + patio cercado: aqui no nacen zombis
 var lab_b := {}
+var bunker_b := {}
+var bunker_door_body: StaticBody2D
+var bunker_door_rect := Rect2()
+var bunker_terminal := Vector2.ZERO
 var base_b := {}
 var base_ring := Rect2i()
 var lab_door_body: StaticBody2D
@@ -332,6 +336,11 @@ func _place_buildings() -> void:
 		if block.position.x == 120 and block.position.y == 55:
 			_build_base(block)
 			continue
+		if block.position.x == 180 and block.position.y == 22:
+			_build_house(Vector2i(189, 26), "bunker", block)
+			bunker_b = buildings[buildings.size() - 1]
+			_build_fence_ring(bunker_b, Rect2i(185, 25, 26, 17), "zero_sign")
+			continue
 		var industrial: bool = block.position.x >= INDUSTRIAL_X
 		var downtown: bool = block.position.x >= 56 and not industrial
 		var kinds: Array = ["taller"] if industrial else residential.duplicate()
@@ -426,9 +435,15 @@ func _build_house(pos: Vector2i, kind: String, block: Rect2i) -> void:
 		house_boxes.append(Rect2((Vector2(pos) + bb.position) * float(TS), bb.size * float(TS)))
 	if d.has("terminal"):
 		var tp: Vector2 = d["terminal"]
-		lab_terminal = (Vector2(pos) + tp) * float(TS)
 		var db: Rect2 = d["door_block"]
-		lab_door_rect = Rect2((Vector2(pos) + db.position) * float(TS), db.size * float(TS))
+		var term_px := (Vector2(pos) + tp) * float(TS)
+		var door_px := Rect2((Vector2(pos) + db.position) * float(TS), db.size * float(TS))
+		if kind == "bunker":
+			bunker_terminal = term_px
+			bunker_door_rect = door_px
+		else:
+			lab_terminal = term_px
+			lab_door_rect = door_px
 	var door := Vector2i(pos.x + int(d["door_x"]), pos.y + h - 1)
 	# caminito desde la escalera del porche hasta la acera
 	var py := pos.y + h
@@ -663,7 +678,8 @@ func _place_civic_loot() -> void:
 			for it in table[k]:
 				_loot_in(b, it)
 	if not base_b.is_empty():
-		_loot_in(base_b, "mascara")   # unico lugar donde aparece la mascara antigas
+		_loot_in(base_b, "mascara")
+		_loot_in(base_b, "llave")   # unico lugar donde aparece la mascara antigas
 		for it in ["fusil", "balas", "balas", "balas", "balas", "cartuchos", "cartuchos", "bandage", "bandage", "food", "water"]:
 			_loot_in(base_b, it)
 		for it in ["balas", "cartuchos", "bandage", "scrap"]:
@@ -675,6 +691,18 @@ func _place_civic_loot() -> void:
 			i += 9
 		for _n in 12:
 			zombie_spawns.append(_yard_spot())
+
+
+func _place_bunker_loot() -> void:
+	if bunker_b.is_empty():
+		return
+	for it in ["bandage", "bandage", "balas", "balas", "cartuchos", "water"]:
+		_loot_in(bunker_b, it)
+	var fl: Array = bunker_b["floors"]
+	var i := 4
+	while i < fl.size():
+		zombie_spawns.append(tile_center(fl[i]))
+		i += 10
 
 
 func _yard_spot() -> Vector2:
@@ -718,6 +746,7 @@ func _pick_loot_and_spawns() -> void:
 	_place_special_loot(refuge_b, hospital_b)
 	_place_lab_loot()
 	_place_civic_loot()
+	_place_bunker_loot()
 	# manuales de supervivencia (ensenan una habilidad): uno en cada una de 5 casas al azar
 	var pool: Array = buildings.duplicate()
 	for i in mini(5, pool.size()):
@@ -824,22 +853,29 @@ func _build_colliders() -> void:
 		var r: Rect2 = hb
 		_add_box(r.position, r.size)
 	if lab_door_rect.size.x > 0.0:
-		lab_door_body = StaticBody2D.new()
-		lab_door_body.collision_layer = 1
-		lab_door_body.collision_mask = 0
-		var sh := CollisionShape2D.new()
-		var rs := RectangleShape2D.new()
-		rs.size = lab_door_rect.size
-		sh.shape = rs
-		sh.position = lab_door_rect.position + lab_door_rect.size * 0.5
-		lab_door_body.add_child(sh)
-		add_child(lab_door_body)
+		lab_door_body = _make_door_body(lab_door_rect)
+	if bunker_door_rect.size.x > 0.0:
+		bunker_door_body = _make_door_body(bunker_door_rect)
 	# limites del mundo
 	var s := size_px()
 	_add_box(Vector2(-64, -64), Vector2(s.x + 128, 64))
 	_add_box(Vector2(-64, s.y), Vector2(s.x + 128, 64))
 	_add_box(Vector2(-64, 0), Vector2(64, s.y))
 	_add_box(Vector2(s.x, 0), Vector2(64, s.y))
+
+
+func _make_door_body(r: Rect2) -> StaticBody2D:
+	var body := StaticBody2D.new()
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var sh := CollisionShape2D.new()
+	var rs := RectangleShape2D.new()
+	rs.size = r.size
+	sh.shape = rs
+	sh.position = r.position + r.size * 0.5
+	body.add_child(sh)
+	add_child(body)
+	return body
 
 
 func _add_box(pos: Vector2, size: Vector2) -> void:

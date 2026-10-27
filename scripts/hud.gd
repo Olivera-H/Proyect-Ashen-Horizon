@@ -154,8 +154,8 @@ func _draw_end(vs: Vector2) -> void:
 		_txt(Vector2(0, mid + 22.0), "Toca la pantalla para reaparecer en el último refugio",
 			12, Color(0.9, 0.9, 0.9), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
 	else:
-		_txt(Vector2(0, mid), "LABORATORIO HORIZONTE", 22, Color("f1c40f"), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
-		_txt(Vector2(0, mid + 20.0), "Fin del Acto I · Mateo  —  Acto II: «Lote H-7»",
+		_txt(Vector2(0, mid), "SUERO H-7", 22, Color("f1c40f"), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
+		_txt(Vector2(0, mid + 20.0), "Fin del Acto II · Suero H-7  —  Acto III: «La otra voz»",
 			13, Color(0.95, 0.95, 0.95), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
 		_txt(Vector2(0, mid + 36.0), "Toca la pantalla para seguir explorando",
 			12, Color(0.8, 0.8, 0.85), HORIZONTAL_ALIGNMENT_CENTER, vs.x)

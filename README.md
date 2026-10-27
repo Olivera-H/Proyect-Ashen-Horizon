@@ -153,3 +153,12 @@ Generados por código en `tools/gen_buildings.py` (arte y colisiones salen de la
 - Mapa de 224x120 tiles: nueva calle al este, fila de manzanas al sur y la **Zona Cero** (extremo este, contaminada, con más tanques).
 - **Hospital** de verdad (camas, recepción, cruz roja en el techo): ahí está la Tarjeta Horizonte.
 - **Máscara antigás**: aparece solo en el cuartel de la base militar. Mientras la lleves en la mochila no recibes daño de la lluvia ácida ni del aire tóxico.
+
+## Acto II: «Suero H-7»
+
+1. Terminal del laboratorio → se revela que Mateo es el sujeto de control (Lote H-7).
+2. Base militar: llave del búnker (y máscara antigás).
+3. Zona Cero (extremo este): el búnker H-7 se abre con la llave; en su terminal está el suero.
+4. Al tomarlo suena la alarma y llega una horda; hay que volver al refugio con el suero.
+
+Los edificios generados por código llevan texturas de material (ladrillo, tablones, concreto), decoración interior, sombra proyectada en el suelo y acabado con ruido/luz (`tools/gen_polish.py`). Buzones y arbustos ya no tienen colisión.

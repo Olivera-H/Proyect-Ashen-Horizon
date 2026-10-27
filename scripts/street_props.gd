@@ -34,11 +34,11 @@ const KINDS := {
 	"tree_dead_a": {"hit": [Rect2(-3, -4, 6, 5)]},
 	"tree_dead_b": {"hit": [Rect2(-3, -4, 6, 5)]},
 	"tree_dying": {"hit": [Rect2(-3, -4, 6, 5)]},
-	"bush_green": {"hit": [Rect2(-6, -6, 12, 7)]},
-	"bush_dry": {"hit": [Rect2(-6, -6, 12, 7)]},
+	"bush_green": {"hit": []},
+	"bush_dry": {"hit": []},
 	"rock_a": {"hit": [Rect2(-4, -5, 8, 6)]},
 	"rock_b": {"hit": [Rect2(-5, -6, 10, 7)]},
-	"mailbox": {"hit": [Rect2(-2, -3, 4, 4)]},
+	"mailbox": {"hit": []},
 }
 const CARS := ["car_sedan_red", "car_sedan_blue", "car_taxi", "car_van_white", "car_wagon_green"]
 const LIGHT_COLORS := {

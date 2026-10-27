@@ -309,37 +309,118 @@ func _check_refuge(delta: float) -> void:
 		_in_refuge = false
 
 
-var _story := 0     # 0 radio inicial, 1 tarjeta conseguida, 2 puerta abierta, 3 fin
+var _story := 0     # 0 radio, 1 tarjeta, 2 puerta lab abierta, 4 Acto II, 5 llave, 6 bunker abierto, 7 suero, 8 fin
 var _door_hint_t := 0.0
 var _radio_t := 6.0
+var _act2_t := 0.0
+
+
+func _set_main(goal_name: String, pos: Vector2 = Vector2.ZERO) -> void:
+	var found := false
+	for o in world.objectives:
+		o["main"] = (o["name"] == goal_name)
+		if o["name"] == goal_name:
+			found = true
+	if not found and pos != Vector2.ZERO:
+		world.objectives.append({"name": goal_name, "pos": pos, "main": true})
+
+
+func _near_door(r: Rect2) -> bool:
+	return r.size.x > 0.0 and r.grow(14.0).has_point(player.global_position)
 
 
 func _update_story(delta: float) -> void:
-	if _story == 0:
-		_radio_t -= delta
-		if _radio_t <= 0.0 and _radio_t > -100.0:
-			_radio_t = -1000.0
-			hud.toast("Radio, Lena: «Mateo, el hospital tiene una tarjeta Horizonte de nivel 3. Sin ella no entras al laboratorio, al este.»", 9.0)
-		if player.inventory.owns("tarjeta"):
-			_story = 1
-			hud.toast("Tienes la Tarjeta Horizonte. Sigue la carretera al este hasta el laboratorio.", 7.0)
+	var inv := player.inventory
 	_door_hint_t -= delta
-	if _story < 2 and world.lab_door_rect.size.x > 0.0:
-		var near := world.lab_door_rect.grow(14.0).has_point(player.global_position)
-		if near and player.inventory.owns("tarjeta"):
-			_story = 2
-			houses.open_lab_door()
-			hud.toast("La tarjeta abre la puerta del laboratorio. Busca la terminal del fondo.", 6.0)
-		elif near and _door_hint_t <= 0.0:
-			_door_hint_t = 6.0
-			hud.toast("Puerta bloqueada: requiere una Tarjeta Horizonte (nivel 3).", 4.0)
-	if _story == 2 and world.lab_terminal != Vector2.ZERO \
-			and player.global_position.distance_to(world.lab_terminal) < 22.0:
-		_story = 3
-		hud.toast("Terminal: «Lote H-7 · sujeto de control: M. Vargas». Esto no es una cura: eres tú.", 8.0)
-		_state = "won"
-		_end_t = 4.0
-		hud.end_kind = "won"
+	match _story:
+		0:
+			_radio_t -= delta
+			if _radio_t <= 0.0 and _radio_t > -100.0:
+				_radio_t = -1000.0
+				hud.toast("Radio, Lena: «Mateo, el hospital tiene una tarjeta Horizonte de nivel 3. Sin ella no entras al laboratorio, al este.»", 9.0)
+			if inv.owns("tarjeta"):
+				_story = 1
+				hud.toast("Tienes la Tarjeta Horizonte. Sigue la carretera al este hasta el laboratorio.", 7.0)
+		1:
+			if _near_door(world.lab_door_rect):
+				if inv.owns("tarjeta"):
+					_story = 2
+					houses.open_door("lab")
+					hud.toast("La tarjeta abre la puerta del laboratorio. Busca la terminal del fondo.", 6.0)
+			if _story == 1 and _near_door(world.lab_door_rect) and _door_hint_t <= 0.0:
+				_door_hint_t = 6.0
+				hud.toast("Puerta bloqueada: requiere una Tarjeta Horizonte (nivel 3).", 4.0)
+		2:
+			if world.lab_terminal != Vector2.ZERO and player.global_position.distance_to(world.lab_terminal) < 22.0:
+				_story = 4
+				_act2_t = 9.0
+				_set_main("Base militar")
+				hud.toast("Terminal: «Lote H-7 · sujeto de control: M. Vargas». Esto no es una cura: eres tú.", 8.0)
+				hud.toast("ACTO II — «Suero H-7»", 5.0)
+		4:
+			_act2_t -= delta
+			if _act2_t <= 0.0 and _act2_t > -100.0:
+				_act2_t = -1000.0
+				hud.toast("Radio, Lena: «Tu sangre es la clave, Mateo. La muestra madre está en un búnker de la Zona Cero. La llave la tiene el coronel Reyes, en la base militar. Busca también una máscara antigás.»", 11.0)
+			if inv.owns("llave"):
+				_story = 5
+				_set_main("Búnker H-7", world.bunker_b["center"] if not world.bunker_b.is_empty() else Vector2.ZERO)
+				hud.toast("Tienes la llave del búnker H-7. Está en la Zona Cero, al extremo este: el aire quema, usa la máscara.", 9.0)
+		5:
+			if _near_door(world.bunker_door_rect):
+				if inv.owns("llave"):
+					_story = 6
+					houses.open_door("bunker")
+					hud.toast("La llave abre el búnker. Llega hasta la terminal del fondo.", 6.0)
+				elif _door_hint_t <= 0.0:
+					_door_hint_t = 6.0
+		6:
+			if world.bunker_terminal != Vector2.ZERO and player.global_position.distance_to(world.bunker_terminal) < 22.0:
+				_story = 7
+				inv.add("suero", 1)
+				_spawn_horde(world.bunker_b["center"], 26)
+				_set_main("Refugio")
+				hud.toast("Suero H-7 recuperado. ¡La alarma de contención suena y los infectados vienen hacia ti!", 8.0)
+				hud.toast("Radio, Lena: «Vuelve al refugio, Mateo. Corre.»", 7.0)
+		7:
+			if refuge_rect.has_point(player.global_position) and inv.owns("suero"):
+				_story = 8
+				hud.toast("Lena te espera. El suero funciona… pero la llamada de la radio trae otra voz.", 8.0)
+				_state = "won"
+				_end_t = 4.0
+				hud.end_kind = "won"
+	if _story == 5 and _near_door(world.bunker_door_rect) and not inv.owns("llave") and _door_hint_t <= 0.0:
+		_door_hint_t = 6.0
+		hud.toast("Puerta blindada: requiere la llave del búnker H-7.", 4.0)
+
+
+func _spawn_horde(center: Vector2, n: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var made := 0
+	var guard := 0
+	while made < n and guard < n * 20:
+		guard += 1
+		var ang := rng.randf() * TAU
+		var pos := center + Vector2(cos(ang), sin(ang)) * rng.randf_range(90.0, 230.0)
+		var t := world.to_tile(pos)
+		if t.x < 1 or t.y < 1 or t.x >= World.W - 1 or t.y >= World.H - 1:
+			continue
+		if world.solid[t.y * World.W + t.x] != 0:
+			continue
+		var roll := rng.randf()
+		var kind := "walker"
+		if roll < 0.2:
+			kind = "tank"
+		elif roll < 0.55:
+			kind = "runner"
+		var z := Zombie.new()
+		z.configure(kind)
+		z.position = pos
+		ents.add_child(z)
+		z.setup(world, player)
+		z.investigate(player.global_position)
+		made += 1
 
 
 func _check_goal() -> void:

@@ -150,6 +150,23 @@ def mascara():
     return outline(im)
 
 
+def llave():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    d.ellipse([2, 3, 8, 9], fill=hx("#d9b83a")); d.ellipse([4, 5, 6, 7], fill=(0, 0, 0, 0))
+    R(d, 8, 6, 14, 7, hx("#d9b83a")); R(d, 12, 7, 13, 10, hx("#d9b83a")); R(d, 10, 7, 10, 9, hx("#d9b83a"))
+    R(d, 3, 3, 6, 3, hx("#f2de80"))
+    R(d, 1, 11, 6, 13, hx("#3a4529")); R(d, 2, 12, 5, 12, hx("#e8efd0"))
+    return outline(im)
+
+
+def suero():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    R(d, 5, 3, 10, 12, hx("#cfe8f0")); R(d, 6, 7, 9, 11, hx("#58e08a")); R(d, 6, 8, 7, 10, hx("#b8ffd0"))
+    R(d, 4, 2, 11, 3, hx("#5a6068")); R(d, 7, 0, 8, 1, hx("#9aa0aa")); R(d, 6, 4, 6, 6, hx("#ffffff"))
+    R(d, 9, 5, 9, 5, hx("#2a2d33")); R(d, 9, 6, 9, 6, hx("#2a2d33"))
+    return outline(im)
+
+
 def balas():
     im = new(16, 16); d = ImageDraw.Draw(im)
     for i, x in enumerate((3, 7, 11)):
@@ -245,7 +262,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     sp = {"item_bandage": bandage(), "item_food": food(), "item_water": water(), "item_scrap": scrap(),
           "item_tubo": tubo(), "item_hacha": hacha(), "item_machete": machete(), "item_pistola": pistola(),
-          "item_escopeta": escopeta(), "item_fusil": fusil(), "item_mascara": mascara(), "item_balas": balas(), "item_cartuchos": cartuchos(), "item_tarjeta": tarjeta(),
+          "item_escopeta": escopeta(), "item_fusil": fusil(), "item_mascara": mascara(), "item_llave": llave(), "item_suero": suero(), "item_balas": balas(), "item_cartuchos": cartuchos(), "item_tarjeta": tarjeta(),
           "slot": slot("item"), "slot_sel": slot("sel"), "slot_skill": slot("skill"), "bag": backpack()}
     for s in ("golpe", "resistencia", "pies", "manos", "estomago", "sigilo"):
         sp["skill_" + s] = skill(s)

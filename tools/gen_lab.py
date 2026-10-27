@@ -419,7 +419,8 @@ def build(save=True):
     door = door_open_image()
     out = {}
     for name, im in (("laboratorio_interior", inte), ("laboratorio_roof", roof), ("lab_door_open", door)):
-        big = im.resize((im.width * 2, im.height * 2), Image.NEAREST)
+        import gen_polish
+        big = gen_polish.polish(im, seed=7) if name != "lab_door_open" else im.resize((im.width * 2, im.height * 2), Image.NEAREST)
         out[name] = big
         if save:
             big.save(os.path.join(OUT_DIR, name + ".png"))

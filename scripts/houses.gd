@@ -27,6 +27,15 @@ func setup(w: World, floor_parent: Node2D, ents: Node2D) -> void:
 	for b in w.buildings:
 		var r: Rect2i = b["rect"]
 		var origin := Vector2(r.position) * float(World.TS)
+		var shadow_tex := _tex("res://assets/houses/%s_shadow.png" % b["kind"])
+		if shadow_tex != null:
+			var sh := Sprite2D.new()
+			sh.texture = shadow_tex
+			sh.centered = false
+			sh.scale = Vector2(0.5, 0.5)
+			sh.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+			sh.position = origin - Vector2(12, 12)
+			floor_parent.add_child(sh)
 		var inner := Sprite2D.new()
 		inner.texture = _tex("res://assets/houses/%s_interior.png" % b["kind"])
 		inner.centered = false
@@ -43,7 +52,7 @@ func setup(w: World, floor_parent: Node2D, ents: Node2D) -> void:
 		add_child(roof)
 		_roofs.append({"sprite": roof, "b": b})
 	_build_fence(ents)
-	_make_lab_door()
+	_make_doors()
 
 
 func _process(delta: float) -> void:
@@ -124,32 +133,45 @@ func _build_one_fence(ents: Node2D, f: Dictionary) -> void:
 			sign_s.z_index = 1
 
 
-# ------------------------------------------------------------ puerta del laboratorio
+# ------------------------------------------------------------ puertas cerradas (laboratorio, bunker)
 
-var _door_open_sprite: Sprite2D
-var lab_open := false
+var _door_sprites := {}     # nombre -> Sprite2D (puerta abierta, oculta hasta abrir)
+var _opened := {}
 
 
-func _make_lab_door() -> void:
-	if world.lab_b.is_empty():
+func _make_doors() -> void:
+	_make_door("lab", world.lab_b, Vector2(17.0 - 0.5, 14.0 + 0.2))
+	_make_door("bunker", world.bunker_b, Vector2(8.0 - 0.5, 9.0 + 0.2))
+
+
+func _make_door(id: String, b: Dictionary, local: Vector2) -> void:
+	if b.is_empty():
 		return
-	_door_open_sprite = Sprite2D.new()
-	_door_open_sprite.texture = _tex("res://assets/houses/lab_door_open.png")
-	_door_open_sprite.centered = false
-	_door_open_sprite.scale = Vector2(0.5, 0.5)
-	var r: Rect2i = world.lab_b["rect"]
-	_door_open_sprite.position = (Vector2(r.position) + Vector2(17.0 - 0.5, 14.0 + 0.2)) * float(World.TS)
-	_door_open_sprite.z_index = 2
-	_door_open_sprite.visible = false
-	add_child(_door_open_sprite)
+	var spr := Sprite2D.new()
+	spr.texture = _tex("res://assets/houses/lab_door_open.png")
+	spr.centered = false
+	spr.scale = Vector2(0.5, 0.5)
+	var r: Rect2i = b["rect"]
+	spr.position = (Vector2(r.position) + local) * float(World.TS)
+	spr.z_index = 2
+	spr.visible = false
+	add_child(spr)
+	_door_sprites[id] = spr
+
+
+func open_door(id: String) -> void:
+	if _opened.has(id):
+		return
+	_opened[id] = true
+	if id == "lab" and world.lab_door_body != null:
+		world.lab_door_body.queue_free()
+		world.lab_door_body = null
+	elif id == "bunker" and world.bunker_door_body != null:
+		world.bunker_door_body.queue_free()
+		world.bunker_door_body = null
+	if _door_sprites.has(id):
+		(_door_sprites[id] as Sprite2D).visible = true
 
 
 func open_lab_door() -> void:
-	if lab_open:
-		return
-	lab_open = true
-	if world.lab_door_body != null:
-		world.lab_door_body.queue_free()
-		world.lab_door_body = null
-	if _door_open_sprite != null:
-		_door_open_sprite.visible = true
+	open_door("lab")

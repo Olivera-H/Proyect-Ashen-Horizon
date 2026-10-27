@@ -18,6 +18,7 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import gen_props as gp  # noqa: E402
+import gen_polish  # noqa: E402
 from gen_lab import R, T, shade, box3d, vines, stains, OL, TS  # noqa: E402
 
 OUT_DIR = os.path.join(HERE, "..", "assets", "houses")
@@ -33,6 +34,7 @@ def C(h, a=255):
 # furn: (clave, x, y, ancho, alto) en tiles.  walls: tabiques (x, y, ancho, alto).
 SPECS = {
     "supermercado": dict(
+        texture="stucco", decor="clock",
         tw=25, th=14, door_x=11, floors=[(1, 3, 23, 8)], sign="SUPER",
         pal=dict(wall="#e9e2cf", wall_d="#a89e86", floor_a="#d9d4c6", floor_b="#cbc6b8", joint="#a8a392",
                  accent="#d8362b", roof="#c9c2ae", roof_d="#8f8872", sign_bg="#c82f26", sign_fg="#fff4dc"),
@@ -45,6 +47,7 @@ SPECS = {
               ("crate", 22, 3.9, 1.3, 1.0)],
         roof_kind="flat_ac"),
     "comisaria": dict(
+        texture="brick", decor="flag", curtains=None,
         tw=20, th=14, door_x=9, floors=[(1, 3, 18, 8)], sign="POLICIA",
         pal=dict(wall="#d7dde6", wall_d="#8b97a8", floor_a="#b9c0cb", floor_b="#adb5c1", joint="#8a93a1",
                  accent="#2c4f9e", roof="#6d7a90", roof_d="#454f60", sign_bg="#1f3a78", sign_fg="#eaf0ff"),
@@ -55,6 +58,7 @@ SPECS = {
               ("bench", 12, 8.2, 3, 0.8)],
         roof_kind="pitched_blue"),
     "iglesia": dict(
+        texture="stucco", decor="cross", rug=(6.0, 3.6, 7.9, 9.9), rugc="#7a2f2f", planks=True,
         tw=14, th=15, door_x=6, floors=[(1, 3, 12, 9)], sign=None,
         pal=dict(wall="#e8dcc4", wall_d="#9a8a6c", floor_a="#b4a48a", floor_b="#a8987e", joint="#8a7a62",
                  accent="#7a2f2f", roof="#8a5a46", roof_d="#5a3a2c", sign_bg="#5a4630", sign_fg="#f3e6c4"),
@@ -64,6 +68,7 @@ SPECS = {
               ("pew", 8, 5.0, 4, 0.8), ("pew", 8, 6.7, 4, 0.8), ("pew", 8, 8.4, 4, 0.8)],
         roof_kind="church"),
     "tienda": dict(
+        texture="plank", decor="pictures", shutters="#3f8f5b", planks=True,
         tw=12, th=12, door_x=5, floors=[(1, 3, 10, 6)], sign="TIENDA",
         pal=dict(wall="#e3d3b8", wall_d="#9a8868", floor_a="#cdbf9f", floor_b="#c2b494", joint="#a09372",
                  accent="#3f8f5b", roof="#a65a3c", roof_d="#6d3a28", sign_bg="#2f6e46", sign_fg="#f2ffe9"),
@@ -72,6 +77,7 @@ SPECS = {
         furn=[("shelf", 1, 3.3, 4, 0.9), ("shelf", 7, 3.3, 4, 0.9), ("counter", 1.5, 5.4, 3, 0.9), ("crate", 9, 5.6, 1.2, 1.0)],
         roof_kind="pitched_red"),
     "casita": dict(
+        texture="plank", decor="pictures", shutters="#4a7fa8", curtains="#e8d8b0", planks=True, rug=(5.0, 6.2, 9.0, 8.4), rugc="#8a4a4a",
         tw=14, th=12, door_x=6, floors=[(1, 3, 12, 6)], sign=None,
         pal=dict(wall="#e6d8c0", wall_d="#a08c6c", floor_a="#b88f62", floor_b="#ad8458", joint="#8a6a46",
                  accent="#4a7fa8", roof="#6a7f94", roof_d="#43566a", sign_bg="#5a4630", sign_fg="#f3e6c4"),
@@ -80,6 +86,7 @@ SPECS = {
         furn=[("bed", 1, 3.2, 2.4, 1.7), ("table", 5, 3.6, 2, 1.1), ("sofa", 9, 3.3, 3, 1.1), ("plant", 12, 5.6, 0.7, 0.7)],
         roof_kind="pitched_blue"),
     "apartamentos": dict(
+        texture="stucco", decor="pictures", curtains="#d8c8a0", planks=True,
         tw=22, th=14, door_x=10, floors=[(1, 3, 20, 8)], sign="APTOS",
         pal=dict(wall="#d9cfc2", wall_d="#8e8274", floor_a="#b9a58a", floor_b="#ae9a80", joint="#8f7d66",
                  accent="#8a4a4a", roof="#7c7468", roof_d="#4e483f", sign_bg="#4a3d52", sign_fg="#f3ecff"),
@@ -89,6 +96,7 @@ SPECS = {
               ("bed", 15, 3.2, 2.4, 1.7), ("table", 18, 3.6, 2, 1.1), ("plant", 10, 8.5, 0.7, 0.7)],
         roof_kind="flat_ac"),
     "hospital": dict(
+        texture="stucco", decor="cross",
         tw=24, th=14, door_x=11, floors=[(1, 3, 22, 8)], sign="HOSPITAL",
         pal=dict(wall="#e6eceb", wall_d="#8fa09e", floor_a="#cfdad8", floor_b="#c3d0ce", joint="#9db0ad",
                  accent="#2f9e9a", roof="#c4ced0", roof_d="#7c8c8e", sign_bg="#a82a2a", sign_fg="#fff4f0"),
@@ -98,7 +106,18 @@ SPECS = {
               ("bed", 16.5, 3.2, 2.4, 1.7), ("bed", 19.5, 3.2, 2.4, 1.7), ("counter", 14, 7.4, 5, 0.9),
               ("locker", 21.8, 6.3, 0.9, 1.4), ("bench", 3, 7.6, 4, 0.8)],
         roof_kind="flat_ac"),
+    "bunker": dict(
+        texture="concrete", decor="flag",
+        tw=18, th=14, door_x=8, floors=[(1, 3, 16, 8)], sign="H7",
+        pal=dict(wall="#a4adb2", wall_d="#586168", floor_a="#737b81", floor_b="#697177", joint="#52595f",
+                 accent="#e8c230", roof="#7d868c", roof_d="#4a5258", sign_bg="#23282c", sign_fg="#e8c230"),
+        windows=[(2, 4), (13, 15)], awning=None,
+        walls=[],
+        furn=[("cryo", 2, 3.0, 2, 2.3), ("cryo", 5, 3.0, 2, 2.3), ("cryo", 11, 3.0, 2, 2.3), ("cryo", 14, 3.0, 2, 2.3),
+              ("terminal", 7.5, 3.2, 2.4, 1.2), ("desk2", 2.5, 7.0, 3, 1.3), ("barrels", 14.5, 7.0, 1.2, 1.5)],
+        roof_kind="bunker", terminal=(8.7, 5.5), door_block=(8.0, 9.0, 2.0, 0.9)),
     "cuartel": dict(
+        texture="brick", decor="flag",
         tw=22, th=14, door_x=10, floors=[(1, 3, 20, 8)], sign="EJERCITO",
         pal=dict(wall="#aeb59a", wall_d="#6a7258", floor_a="#8e957e", floor_b="#848b74", joint="#6a7058",
                  accent="#4f5e3a", roof="#5c6a45", roof_d="#3a4529", sign_bg="#3a4529", sign_fg="#e8efd0"),
@@ -138,6 +157,36 @@ def floor_pattern(d, rect, p):
             d.line([(tx * TS, ty * TS), (tx * TS, ty * TS + TS - 1)], fill=p["joint"])
 
 
+def plank_floor(d, rect, p):
+    x0, y0, x1, y1 = rect
+    for ty in range(y0, y1 + 1):
+        for tx in range(x0, x1 + 1):
+            base = p["floor_a"] if (tx + ty) % 2 == 0 else p["floor_b"]
+            R(d, tx * TS, ty * TS, tx * TS + TS - 1, ty * TS + TS - 1, base)
+            for k in range(4):
+                yy = ty * TS + k * 4
+                d.line([(tx * TS, yy), (tx * TS + TS - 1, yy)], fill=p["joint"])
+                jx = tx * TS + ((k * 7 + tx * 5) % 12) + 2
+                d.line([(jx, yy), (jx, yy + 3)], fill=p["joint"])
+
+
+def wall_decor(d, spec, p, rnd):
+    x0, y0, x1, y1 = spec["floors"][0]
+    kind = spec.get("decor", "pictures")
+    for x in range(x0 + 1, x1, 4):
+        if rnd.random() < 0.35:
+            continue
+        X, Y = T(x) + 4, 8
+        if kind == "pictures":
+            R(d, X, Y, X + 13, Y + 10, C("#6a4a2c")); R(d, X + 2, Y + 2, X + 11, Y + 8, rnd.choice((C("#7fa6c0"), C("#c8b078"), C("#8fb090"))))
+        elif kind == "clock":
+            d.ellipse([X, Y, X + 11, Y + 11], fill=C("#f0ece0"), outline=OL); d.line([(X + 5, Y + 5), (X + 5, Y + 2)], fill=OL); d.line([(X + 5, Y + 5), (X + 8, Y + 5)], fill=OL)
+        elif kind == "flag":
+            R(d, X, Y, X + 15, Y + 10, C("#5a6a44")); R(d, X, Y + 3, X + 15, Y + 6, C("#e8efd0"))
+        elif kind == "cross":
+            R(d, X + 4, Y, X + 6, Y + 12, C("#f0ece0")); R(d, X, Y + 3, X + 10, Y + 5, C("#f0ece0"))
+
+
 def back_wall(d, x0, x1, p, y_floor=3):
     R(d, T(x0), 4, T(x1) - 1, T(y_floor) - 1, p["wall"])
     for px in range(T(x0), T(x1), 32):
@@ -154,7 +203,13 @@ def product_dots(d, x0, y0, x1, y1, rnd):
             R(d, xx, yy, xx + 1, yy + 1, rnd.choice(cols))
 
 
+LAB_KINDS = ("cryo", "terminal", "racks", "desk2", "barrels", "tank", "island", "centrifuge", "lockers", "bench_wait")
+
+
 def draw_furn(d, kind, x, y, w, h, rnd, p):
+    if kind in LAB_KINDS:
+        import gen_lab
+        return gen_lab.draw_furn(d, kind, x, y, w, h, rnd)
     X0, Y0, X1, Y1 = T(x), T(y), T(x + w) - 1, T(y + h) - 1
     if kind == "shelf":
         box3d(d, x, y, w, h, C("#c9b88e"), C("#7a5a3c"), 0.5)
@@ -225,12 +280,44 @@ def draw_furn(d, kind, x, y, w, h, rnd, p):
         R(d, X0, Y0, X1, Y0 + 5, C("#5a7a3c")); R(d, X0 + 2, Y0 - 2, X1 - 2, Y0 + 2, C("#7a9a4c"))
 
 
+def wall_texture(d, spec, p, x0, y0, x1, y1, rnd):
+    t = spec.get("texture", "stucco")
+    base = p["wall"]
+    if t == "brick":
+        for yy in range(y0, y1, 4):
+            d.line([(x0, yy), (x1, yy)], fill=shade(base, -26))
+            off = 0 if ((yy - y0) // 4) % 2 == 0 else 4
+            for xx in range(x0 + off, x1, 8):
+                d.line([(xx, yy), (xx, min(yy + 3, y1))], fill=shade(base, -26))
+        for _ in range((x1 - x0) // 3):
+            bx, by = rnd.randint(x0, x1 - 4), rnd.randint(y0, y1 - 3)
+            R(d, bx, by, bx + 3, by + 2, shade(base, rnd.choice((-14, 10, -8))))
+    elif t == "plank":
+        for xx in range(x0, x1, 5):
+            d.line([(xx, y0), (xx, y1)], fill=shade(base, -24))
+        for _ in range((x1 - x0) // 4):
+            bx, by = rnd.randint(x0, x1 - 2), rnd.randint(y0, y1 - 4)
+            R(d, bx, by, bx, by + 3, shade(base, -34))
+    elif t == "concrete":
+        for xx in range(x0, x1, 32):
+            d.line([(xx, y0), (xx, y1)], fill=shade(base, -30))
+        for yy in range(y0 + 16, y1, 16):
+            d.line([(x0, yy), (x1, yy)], fill=shade(base, -18))
+        for xx in range(x0 + 4, x1, 32):
+            R(d, xx, y0 + 3, xx + 1, y0 + 4, shade(base, -60)); R(d, xx, y1 - 5, xx + 1, y1 - 4, shade(base, -60))
+    else:  # stucco
+        for _ in range((x1 - x0) // 2):
+            bx, by = rnd.randint(x0, x1 - 3), rnd.randint(y0, y1 - 2)
+            R(d, bx, by, bx + rnd.randint(1, 3), by, shade(base, rnd.choice((-12, 8))))
+
+
 def facade(d, rnd, spec, p, roof=False):
     tw, th = spec["tw"], spec["th"]
     W = tw * TS
     fy = body_h(spec)
     Y0 = fy * TS
     R(d, 0, Y0, W - 1, Y0 + 3 * TS - 1, p["wall"])
+    wall_texture(d, spec, p, 0, Y0 + 3, W - 1, Y0 + 3 * TS - 6, rnd)
     R(d, 0, Y0, W - 1, Y0 + 2, shade(p["wall"], 24))
     R(d, 0, Y0 + 3 * TS - 5, W - 1, Y0 + 3 * TS - 1, p["wall_d"])
     R(d, 0, Y0 + 20, W - 1, Y0 + 22, p["accent"])
@@ -243,6 +330,17 @@ def facade(d, rnd, spec, p, roof=False):
         if (b - a) >= 3:
             d.line([((wx0 + wx1) // 2, Y0 + 10), ((wx0 + wx1) // 2, Y0 + 2 * TS + 6)], fill=p["wall_d"])
         d.rectangle([wx0, Y0 + 8, wx1, Y0 + 2 * TS + 8], outline=OL)
+        R(d, wx0 - 1, Y0 + 2 * TS + 9, wx1 + 1, Y0 + 2 * TS + 11, shade(p["wall"], 30))      # alfeizar
+        R(d, wx0 - 1, Y0 + 2 * TS + 12, wx1 + 1, Y0 + 2 * TS + 12, shade(p["wall"], -50))
+        R(d, wx0, Y0 + 8, wx1, Y0 + 9, shade(p["wall"], 40))
+        if spec.get("shutters"):
+            sc = C(spec["shutters"])
+            R(d, wx0 - 4, Y0 + 8, wx0 - 1, Y0 + 2 * TS + 8, sc); R(d, wx1 + 1, Y0 + 8, wx1 + 4, Y0 + 2 * TS + 8, sc)
+            for yy in range(Y0 + 10, Y0 + 2 * TS + 8, 4):
+                d.line([(wx0 - 4, yy), (wx0 - 1, yy)], fill=shade(sc, -40)); d.line([(wx1 + 1, yy), (wx1 + 4, yy)], fill=shade(sc, -40))
+        if spec.get("curtains") and rnd.random() < 0.7:
+            cc = C(spec["curtains"])
+            R(d, wx0 + 2, Y0 + 10, wx0 + 6, Y0 + 2 * TS + 4, cc); R(d, wx1 - 6, Y0 + 10, wx1 - 2, Y0 + 2 * TS + 4, cc)
         if rnd.random() < 0.6:
             d.line([(wx0 + 6, Y0 + 14), (wx0 + 16, Y0 + 30), (wx0 + 10, Y0 + 40)], fill=C("#e6eef2"))
     dx0, dx1 = spec["door_x"] * TS, (spec["door_x"] + 2) * TS - 1
@@ -288,8 +386,13 @@ def interior_image(spec, rnd):
     p = pal_of(spec)
     im, d = new_img(tw * TS, th * TS)
     for rect in spec["floors"]:
-        floor_pattern(d, rect, p)
+        (plank_floor if spec.get("planks") else floor_pattern)(d, rect, p)
     back_wall(d, 1, tw - 1, p)
+    wall_decor(d, spec, p, rnd)
+    if spec.get("rug"):
+        rx0, ry0, rx1, ry1 = [int(v * TS) for v in spec["rug"]]
+        R(d, rx0, ry0, rx1, ry1, C(spec["rugc"])); d.rectangle([rx0, ry0, rx1, ry1], outline=shade(C(spec["rugc"]), -50))
+        d.rectangle([rx0 + 3, ry0 + 3, rx1 - 3, ry1 - 3], outline=shade(C(spec["rugc"]), 40))
     for (x, y, w, h) in spec["walls"]:
         R(d, T(x), T(y), T(x + w) - 1, T(y + h) - 1, p["wall"])
         R(d, T(x + w) - 1, T(y), T(x + w) - 1, T(y + h) - 1, p["wall_d"])
@@ -319,8 +422,13 @@ def roof_image(spec, rnd):
     R(d, 0, 0, W - 1, fh - 1, p["roof"])
     if kind.startswith("pitched"):
         ridge = fh // 2
-        for y in range(0, fh, 6):
+        for ri, y in enumerate(range(0, fh, 6)):
             d.line([(0, y), (W - 1, y)], fill=p["roof_d"])
+            off = 0 if ri % 2 == 0 else 6
+            for xx in range(off, W, 12):
+                d.line([(xx, y), (xx, y + 5)], fill=shade(p["roof"], -22))
+            for xx in range(rnd.randint(0, 11), W, 37):
+                R(d, xx, y + 1, xx + 4, y + 4, shade(p["roof"], rnd.choice((-18, 14))))
         R(d, 0, ridge - 2, W - 1, ridge + 1, shade(p["roof"], 36))
         R(d, 0, fh - 6, W - 1, fh - 1, p["roof_d"])
     elif kind == "church":
@@ -331,6 +439,19 @@ def roof_image(spec, rnd):
         R(d, bx - 14, 6, bx + 14, 34, C("#d8ccb0")); d.rectangle([bx - 14, 6, bx + 14, 34], outline=OL)
         R(d, bx - 8, 12, bx + 8, 28, C("#2a2418")); R(d, bx - 3, 40, bx + 3, 56, C("#5a3a22")); R(d, bx - 8, 46, bx + 8, 50, C("#5a3a22"))
         d.rectangle([bx - 8, 12, bx + 8, 28], outline=OL)
+    elif kind == "bunker":
+        R(d, 0, 0, W - 1, fh - 1, p["roof"])
+        for x in range(0, W, 24):
+            d.line([(x, 0), (x, fh - 1)], fill=p["roof_d"])
+        for y in range(0, fh, 24):
+            d.line([(0, y), (W - 1, y)], fill=p["roof_d"])
+        R(d, 0, 0, W - 1, 5, p["roof_d"]); R(d, 0, fh - 6, W - 1, fh - 1, p["roof_d"])
+        R(d, 0, 0, 5, fh, p["roof_d"]); R(d, W - 6, 0, W - 1, fh, p["roof_d"])
+        cx, cy = W // 2, fh // 2
+        R(d, cx - 22, cy - 22, cx + 22, cy + 22, C("#3a4046")); d.rectangle([cx - 22, cy - 22, cx + 22, cy + 22], outline=OL)
+        for k in range(-20, 20, 8):
+            d.polygon([(cx + k, cy - 20), (cx + k + 4, cy - 20), (cx + k - 8, cy + 20), (cx + k - 12, cy + 20)], fill=C("#e8c230"))
+        R(d, cx - 18, cy - 8, cx + 18, cy + 8, C("#23282c")); gp.text(im, cx - 5, cy - 3, "H7", C("#e8c230"))
     elif kind == "camo":
         for _ in range(60):
             cx, cy = rnd.randint(0, W), rnd.randint(0, fh)
@@ -346,6 +467,14 @@ def roof_image(spec, rnd):
         R(d, 0, fh - 6, W - 1, fh - 1, p["roof_d"])
         for x in range(0, W, 32):
             d.line([(x, 0), (x, fh - 1)], fill=shade(p["roof"], -14))
+        for _ in range(W // 2):
+            gx, gy = rnd.randint(6, W - 8), rnd.randint(6, fh - 8)
+            R(d, gx, gy, gx + 1, gy, shade(p["roof"], rnd.choice((-20, 16))))
+        for k in range(3):
+            vx = rnd.randint(T(2), W - T(4)); vy = rnd.randint(T(5), max(T(5) + 1, fh - T(3)))
+            R(d, vx, vy, vx + 5, vy + 5, C("#80868c")); d.rectangle([vx, vy, vx + 5, vy + 5], outline=OL)
+            R(d, vx + 1, vy + 1, vx + 4, vy + 1, C("#b4babf"))
+        R(d, 6, fh - 12, W - 7, fh - 7, shade(p["roof"], -26))   # sombra del parapeto
         for (ax, ay) in ((4, 2), (tw - 8, 3), (tw // 2 - 1, 5)):
             R(d, T(ax), T(ay), T(ax) + 33, T(ay) + 29, C("#a0a4a8")); d.rectangle([T(ax), T(ay), T(ax) + 33, T(ay) + 29], outline=OL)
             cx, cy = T(ax) + 16, T(ay) + 10
@@ -483,13 +612,16 @@ def build(save=True):
         boxes = [tuple(w) for w in spec["walls"]] + [(x, y, w, h) for (_k, x, y, w, h) in spec["furn"]]
         data[name] = {"w": spec["tw"], "h": spec["th"], "door_x": spec["door_x"],
                       "rows": tile_rows(spec, roof, inte), "boxes": boxes}
+        if "terminal" in spec:
+            data[name]["terminal"] = spec["terminal"]
+            data[name]["door_block"] = spec["door_block"]
     ci, cr = cancha_images(random.Random(11))
     out_imgs["cancha"] = (ci, cr)
     data["cancha"] = cancha_data()
     if save:
         for name, (inte, roof) in out_imgs.items():
             for nm, im in (("interior", inte), ("roof", roof)):
-                big = im.resize((im.width * 2, im.height * 2), Image.NEAREST)
+                big = gen_polish.polish(im, seed=zlib.crc32((name + nm).encode()))
                 big.save(os.path.join(OUT_DIR, "%s_%s.png" % (name, nm)))
     return out_imgs, data
 
