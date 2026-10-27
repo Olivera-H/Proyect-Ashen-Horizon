@@ -147,3 +147,9 @@ Generados por código en `tools/gen_buildings.py` (arte y colisiones salen de la
 - **Supermercado**, **comisaría** (celdas y armero), **iglesia**, **tienda**, **casita** y **apartamentos** en el casco urbano y los barrios.
 - **Cancha** de fútbol cercada en la zona industrial.
 - **Base militar** (cuartel con literas y armero, patio de concreto cercado, muchos infectados) al sureste: tiene el **fusil de asalto** y munición.
+
+## Mapa ampliado y máscara antigás
+
+- Mapa de 224x120 tiles: nueva calle al este, fila de manzanas al sur y la **Zona Cero** (extremo este, contaminada, con más tanques).
+- **Hospital** de verdad (camas, recepción, cruz roja en el techo): ahí está la Tarjeta Horizonte.
+- **Máscara antigás**: aparece solo en el cuartel de la base militar. Mientras la lleves en la mochila no recibes daño de la lluvia ácida ni del aire tóxico.

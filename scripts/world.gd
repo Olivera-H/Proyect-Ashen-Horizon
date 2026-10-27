@@ -4,16 +4,17 @@ extends Node2D
 ## en la autopista y una zona industrial al este. Genera el TileMap, las
 ## colisiones, los objetivos, los puntos de botin y los puntos de aparicion.
 
-const W := 176
-const H := 96
+const W := 224
+const H := 120
 const TS := PixelArt.TILE
-const ZOMBIE_COUNT := 100
+const ZOMBIE_COUNT := 140
 
-const V_ROADS := [20, 52, 84, 116]                 # x inicial de cada calle vertical
-const H_ROADS := [[18, 3], [46, 8], [74, 3]]  # [y inicial, ancho]; la de 8 es la autopista (4 carriles)
+const V_ROADS := [20, 52, 84, 116, 176]                 # x inicial de cada calle vertical
+const H_ROADS := [[18, 3], [46, 8], [74, 3], [98, 3]]  # [y inicial, ancho]; la de 8 es la autopista (4 carriles)
 const HW := 1                                 # indice de la autopista en H_ROADS (la calle del medio)
 const ROAD_W := 3
 const LAB_X := 120                            # desde aqui empieza el complejo del laboratorio
+const ZONE_ZERO_X := 180                      # zona contaminada del extremo este
 const INDUSTRIAL_X := 87                      # desde aqui empieza la zona industrial
 const TERRAIN_PATH := "res://assets/world/terrain.png"
 const ATLAS_COLS := 16
@@ -323,33 +324,30 @@ func _block_ranges() -> Array:
 func _place_buildings() -> void:
 	var residential := ["cabana", "casa", "chalet", "casita"]
 	for block in _block_ranges():
-		if block.position.x >= LAB_X and block.position.y == 22:
+		if block.position.x == 120 and block.position.y == 22:
 			_build_house(Vector2i(130, 23), "laboratorio", block)
 			lab_b = buildings[buildings.size() - 1]
 			_build_fence_ring(lab_b, Rect2i(126, 22, 44, 23), "horizonte_sign")
 			continue
-		if block.position.x >= LAB_X and block.position.y == 55:
+		if block.position.x == 120 and block.position.y == 55:
 			_build_base(block)
 			continue
 		var industrial: bool = block.position.x >= INDUSTRIAL_X
 		var downtown: bool = block.position.x >= 56 and not industrial
 		var kinds: Array = ["taller"] if industrial else residential.duplicate()
 		var forced: Array = []
+		var civic := {Vector2i(56, 22): "iglesia", Vector2i(56, 55): "supermercado", Vector2i(56, 78): "hospital",
+			Vector2i(56, 102): "comisaria", Vector2i(24, 102): "supermercado", Vector2i(88, 102): "cancha"}
+		var key := Vector2i(block.position.x, block.position.y)
 		if downtown:
 			kinds = ["tienda", "casita", "apartamentos", "casa"]
-			match block.position.y:
-				22:
-					forced = ["iglesia"]
-				55:
-					forced = ["supermercado"]
-				78:
-					forced = ["comisaria"]
-				_:
-					forced = ["tienda", "casita"]
+			forced = [civic[key]] if civic.has(key) else ["tienda", "casita"]
 		elif not industrial and block.position.x >= 24:
 			kinds.append("apartamentos")
-		elif industrial and block.position.x < LAB_X and block.position.y == 78:
-			forced = ["cancha"]
+			if civic.has(key):
+				forced = [civic[key]]
+		elif industrial and civic.has(key):
+			forced = [civic[key]]
 		var x: int = block.position.x + rng.randi_range(1, 2)
 		var count := 0
 		for fk in forced:
@@ -488,14 +486,16 @@ func _pick_start_and_objectives() -> void:
 	var best_refuge := INF
 	var best_hosp := INF
 	for b in buildings:
-		if not (b["kind"] in ["cabana", "casa", "chalet", "casita"]):
+		if not (b["kind"] in ["cabana", "casa", "chalet", "casita", "hospital"]):
 			continue
 		var c: Vector2 = b["center"]
 		var d1 := c.distance_to(Vector2(30, 30) * TS)
 		var d2 := c.distance_to(Vector2(68, 62) * TS)
-		if d1 < best_refuge and _ring_clear(b):
+		if d1 < best_refuge and b["kind"] != "hospital" and _ring_clear(b):
 			best_refuge = d1
 			refuge = b
+		if b["kind"] == "hospital":
+			d2 = -1.0
 		if d2 < best_hosp:
 			best_hosp = d2
 			hospital = b
@@ -654,6 +654,7 @@ func _place_civic_loot() -> void:
 		"comisaria": ["pistola", "balas", "balas", "balas", "bandage", "bandage"],
 		"iglesia": ["bandage", "bandage", "water"],
 		"tienda": ["food", "water", "scrap"],
+		"hospital": ["bandage", "bandage", "bandage", "water"],
 		"apartamentos": ["food", "scrap", "bandage", "balas"],
 	}
 	for b in buildings:
@@ -662,6 +663,7 @@ func _place_civic_loot() -> void:
 			for it in table[k]:
 				_loot_in(b, it)
 	if not base_b.is_empty():
+		_loot_in(base_b, "mascara")   # unico lugar donde aparece la mascara antigas
 		for it in ["fusil", "balas", "balas", "balas", "balas", "cartuchos", "cartuchos", "bandage", "bandage", "food", "water"]:
 			_loot_in(base_b, it)
 		for it in ["balas", "cartuchos", "bandage", "scrap"]:

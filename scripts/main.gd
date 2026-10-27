@@ -44,6 +44,7 @@ var _rain_t := 40.0
 var _event_t := 70.0
 var _in_refuge := false
 var _warned_toxic := false
+var _mask_told := false
 var _drop_goal := {}
 var _drop_flying := false
 var _drop_landed := false
@@ -126,7 +127,9 @@ func _spawn_zombies() -> void:
 			continue
 		var kind := "walker"
 		var roll := rng.randf()
-		if pos.x >= float(World.LAB_X) * float(World.TS) and roll < 0.35:
+		if pos.x >= float(World.ZONE_ZERO_X) * float(World.TS) and roll < 0.5:
+			kind = "tank"
+		elif pos.x >= float(World.LAB_X) * float(World.TS) and roll < 0.35:
 			kind = "tank"
 		elif pos.x >= 87.0 * float(World.TS) and roll < 0.12:
 			kind = "tank"
@@ -254,7 +257,13 @@ func _update_weather(delta: float) -> void:
 	var outdoors := world.in_bounds(tile) and world.tile_id(tile) != PixelArt.T_FLOOR
 	var dmg := 0.0
 	hud.warning = ""
-	if outdoors:
+	var masked := player.inventory.owns("mascara")
+	if masked and not _mask_told:
+		_mask_told = true
+		hud.toast("Máscara antigás equipada: ya puedes cruzar la lluvia ácida y las zonas contaminadas.", 7.0)
+	if outdoors and masked and (weather.rain > 0.5 or tile.x >= TOXIC_TILE_X):
+		hud.warning = "MÁSCARA ANTIGÁS: el aire es respirable"
+	elif outdoors:
 		if weather.rain > 0.5:
 			dmg += 0.35
 			hud.warning = "LLUVIA ÁCIDA: refúgiate en un edificio"

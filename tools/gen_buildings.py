@@ -88,6 +88,16 @@ SPECS = {
         furn=[("bed", 1, 3.2, 2.4, 1.7), ("table", 4, 3.6, 2, 1.1), ("bed", 8, 3.2, 2.4, 1.7), ("sofa", 11, 3.4, 3, 1.1),
               ("bed", 15, 3.2, 2.4, 1.7), ("table", 18, 3.6, 2, 1.1), ("plant", 10, 8.5, 0.7, 0.7)],
         roof_kind="flat_ac"),
+    "hospital": dict(
+        tw=24, th=14, door_x=11, floors=[(1, 3, 22, 8)], sign="HOSPITAL",
+        pal=dict(wall="#e6eceb", wall_d="#8fa09e", floor_a="#cfdad8", floor_b="#c3d0ce", joint="#9db0ad",
+                 accent="#2f9e9a", roof="#c4ced0", roof_d="#7c8c8e", sign_bg="#a82a2a", sign_fg="#fff4f0"),
+        windows=[(2, 5), (6, 9), (14, 17), (18, 22)], awning=None,
+        walls=[(8.0, 3.0, 0.3, 3.0), (15.0, 3.0, 0.3, 3.0)],
+        furn=[("bed", 1, 3.2, 2.4, 1.7), ("bed", 4.5, 3.2, 2.4, 1.7), ("bed", 9, 3.2, 2.4, 1.7), ("bed", 12, 3.2, 2.4, 1.7),
+              ("bed", 16.5, 3.2, 2.4, 1.7), ("bed", 19.5, 3.2, 2.4, 1.7), ("counter", 14, 7.4, 5, 0.9),
+              ("locker", 21.8, 6.3, 0.9, 1.4), ("bench", 3, 7.6, 4, 0.8)],
+        roof_kind="flat_ac"),
     "cuartel": dict(
         tw=22, th=14, door_x=10, floors=[(1, 3, 20, 8)], sign="EJERCITO",
         pal=dict(wall="#aeb59a", wall_d="#6a7258", floor_a="#8e957e", floor_b="#848b74", joint="#6a7058",
@@ -340,8 +350,10 @@ def roof_image(spec, rnd):
             R(d, T(ax), T(ay), T(ax) + 33, T(ay) + 29, C("#a0a4a8")); d.rectangle([T(ax), T(ay), T(ax) + 33, T(ay) + 29], outline=OL)
             cx, cy = T(ax) + 16, T(ay) + 10
             d.ellipse([cx - 9, cy - 8, cx + 9, cy + 8], fill=C("#464c54"), outline=OL)
-    if spec["sign"] and kind in ("flat_ac",):
-        pass
+    if spec["sign"] == "HOSPITAL":
+        cx, cy = W // 2, fh // 2 + 4
+        R(d, cx - 14, cy - 14, cx + 14, cy + 14, C("#f2f2f0")); d.rectangle([cx - 14, cy - 14, cx + 14, cy + 14], outline=OL)
+        R(d, cx - 4, cy - 10, cx + 4, cy + 10, C("#c82f26")); R(d, cx - 10, cy - 4, cx + 10, cy + 4, C("#c82f26"))
     if kind == "pitched_blue" and spec["sign"] == "POLICIA":
         R(d, W // 2 - 12, fh // 2 - 10, W // 2 + 12, fh // 2 + 10, C("#1f3a78")); d.rectangle([W // 2 - 12, fh // 2 - 10, W // 2 + 12, fh // 2 + 10], outline=OL)
         gp.text(im, W // 2 - 3, fh // 2 - 3, "P", C("#eaf0ff"))

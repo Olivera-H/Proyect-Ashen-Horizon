@@ -242,6 +242,8 @@ func _cycle_zoom() -> void:
 
 
 func _sector_name(t: Vector2i) -> String:
+	if t.x >= World.ZONE_ZERO_X:
+		return "ZONA CERO"
 	if t.x >= World.LAB_X:
 		return "LABORATORIO"
 	if t.x >= 87:
