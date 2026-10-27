@@ -167,3 +167,8 @@ Los edificios generados por código llevan texturas de material (ladrillo, tablo
 
 - `scripts/music.gd`: 4 pistas en `assets/audio/music/` que suenan al azar con silencios de 60–150 s entre una y otra (nunca seguidas ni repetidas), con fundido de entrada y salida.
 - El botín se dibuja sobre el interior de los edificios y tiene un brillo que late, para verlo en cualquier suelo.
+
+## Música y botín visible
+
+- `scripts/music.gd`: música de fondo (`assets/audio/music/`). Suena una pista al azar cada 60–150 s de silencio (la primera a los 15 s), nunca la misma dos veces seguidas, con fundido de entrada y salida.
+- El botín dentro de los edificios se dibuja sobre el interior y tiene un brillo que late.
