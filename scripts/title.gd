@@ -18,6 +18,9 @@ var _skyline: Array = []
 var _master_volume := 0.8
 var _music_volume := 1.0
 var _sfx_volume := 1.0
+var _skin_preview: AnimatedSprite2D
+var _skin_mode := "idle_down"
+var _skin_timer := 0.0
 
 
 func _ready() -> void:
@@ -35,6 +38,7 @@ func _ready() -> void:
 		var w := rng.randf_range(0.03, 0.08)
 		_skyline.append([x, w, rng.randf_range(0.08, 0.28), rng.randi() % 3])
 		x += w * rng.randf_range(0.7, 1.1)
+	_create_skin_preview()
 	Sfx.ensure(get_tree())
 	_start_audio()
 	var m := Music.new()
@@ -77,7 +81,7 @@ func _set_volume(kind: String, value: float) -> void:
 
 
 func _volume_rect(vs: Vector2, index: int) -> Rect2:
-	return Rect2(vs.x * 0.5 - 112.0, vs.y * 0.56 + index * 44.0, 224.0, 14.0)
+	return Rect2(vs.x * 0.5 - 112.0, vs.y * 0.51 + index * 44.0, 224.0, 14.0)
 
 
 func _adjust_volume(pos: Vector2) -> bool:
@@ -92,6 +96,31 @@ func _adjust_volume(pos: Vector2) -> bool:
 	return false
 
 
+func _skin_panel(vs: Vector2) -> Rect2:
+	return Rect2(vs.x - 204.0, vs.y * 0.46, 184.0, 164.0)
+
+
+func _create_skin_preview() -> void:
+	_skin_preview = AnimatedSprite2D.new()
+	var frames := SpriteSheets.frames("mateo", SpriteSheets.HUMAN)
+	if frames == null:
+		frames = PixelArt.make_humanoid_frames(Characters.get_data("mateo")["palette"])
+	_skin_preview.sprite_frames = frames
+	_skin_preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_skin_preview.scale = Vector2(2.6, 2.6)
+	_skin_preview.play("idle_down")
+	add_child(_skin_preview)
+	_position_skin_preview()
+	get_viewport().size_changed.connect(_position_skin_preview)
+
+
+func _position_skin_preview() -> void:
+	if _skin_preview == null:
+		return
+	var p := _skin_panel(get_viewport_rect().size)
+	_skin_preview.position = p.position + Vector2(p.size.x * 0.5, 90.0)
+
+
 func _start_audio() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -100,6 +129,13 @@ func _start_audio() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_skin_timer += delta
+	if _skin_preview != null:
+		_skin_preview.visible = _panel == ""
+		if _skin_timer > 3.2:
+			_skin_timer = 0.0
+			_skin_mode = "walk_down" if _skin_mode == "idle_down" else "idle_down"
+			_skin_preview.play(SpriteSheets.pick(_skin_preview.sprite_frames, _skin_mode.split("_")[0] + "_", "down"))
 	_flash = maxf(0.0, _flash - delta * 2.0)
 	if randf() < delta * 0.12:
 		_flash = 1.0
@@ -231,12 +267,19 @@ func _draw() -> void:
 	# botones
 	_buttons.clear()
 	if _panel == "":
+		var skin_box := _skin_panel(vs)
+		draw_rect(skin_box, Color(0.045, 0.055, 0.065, 0.91))
+		draw_rect(skin_box, Color(0.54, 0.68, 0.46, 0.8), false, 1.0)
+		draw_rect(Rect2(skin_box.position, Vector2(skin_box.size.x, 3.0)), Color(0.6, 0.76, 0.46))
+		_txt("SUPERVIVIENTE", skin_box.position + Vector2(0, 19), 12, Color(0.87, 0.91, 0.75), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
+		_txt("MATEO VARGAS", skin_box.position + Vector2(0, 133), 12, Color(0.94, 0.87, 0.73), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
+		_txt("SKIN 01 / EQUIPADA", skin_box.position + Vector2(0, 149), 9, Color(0.58, 0.79, 0.55), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
 		var bw := 150.0
 		var bh := 24.0
-		var by := vs.y * 0.58
+		var by := vs.y * 0.56
 		var items := [["jugar", "JUGAR"], ["controles", "CONTROLES"], ["configuracion", "CONFIGURACIÓN"], ["creditos", "CRÉDITOS"]]
 		for i in items.size():
-			var r := Rect2(cx - bw * 0.5, by + i * (bh + 8.0), bw, bh)
+			var r := Rect2(maxf(18.0, cx - 190.0), by + i * (bh + 8.0), bw, bh)
 			_buttons.append({"rect": r, "id": items[i][0]})
 			var pulse := 0.5 + 0.5 * sin(_t * 3.0) if i == 0 else 0.0
 			var fill := Color(0.10, 0.10, 0.12, 0.85).lerp(Color(0.45, 0.10, 0.08, 0.9), pulse * 0.8)
@@ -244,7 +287,7 @@ func _draw() -> void:
 			draw_rect(r, Color(0.75, 0.7, 0.62, 0.8), false, 1.0)
 			_txt(items[i][1], Vector2(r.position.x, r.position.y + 17.0), 14, Color(0.95, 0.92, 0.85), HORIZONTAL_ALIGNMENT_CENTER, bw)
 	else:
-		var pr := Rect2(cx - 190, vs.y * 0.45, 380, vs.y * 0.5)
+		var pr := Rect2(cx - 190, vs.y * 0.36, 380, vs.y * 0.58)
 		draw_rect(pr, Color(0.03, 0.03, 0.04, 0.92))
 		draw_rect(pr, Color(0.75, 0.7, 0.62, 0.8), false, 1.0)
 		var lines: Array = []
