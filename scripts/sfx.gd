@@ -118,12 +118,6 @@ func _ready() -> void:
 		_pool2d.append(q)
 
 
-func _process(_delta: float) -> void:
-	for p in _loops.values():
-		if p.playing and p.volume_db > -50.0:
-			pass
-
-
 func _set_loop(n: String, on: bool, vol: float) -> void:
 	var p: AudioStreamPlayer = _loops.get(n)
 	if p == null:
