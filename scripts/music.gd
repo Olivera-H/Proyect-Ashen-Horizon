@@ -25,6 +25,8 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	Sfx.setup_audio()
 	_player.bus = "Master"
+	# En la version web, 4.3 usa por defecto reproduccion por "muestras", que no soporta mp3 (silencio): forzar streaming.
+	_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	_rng.randomize()
 	_player.volume_db = -80.0
 	add_child(_player)
