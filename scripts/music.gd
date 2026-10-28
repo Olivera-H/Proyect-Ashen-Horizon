@@ -10,11 +10,11 @@ const TRACKS := [
 	"res://assets/audio/music/the_weeping_hall.mp3",
 ]
 const FIRST_DELAY := 15.0
-const GAP_MIN := 60.0       # silencio minimo entre pistas (s)
-const GAP_MAX := 150.0
+const GAP_MIN := 15.0       # silencio minimo entre pistas (s)
+const GAP_MAX := 40.0
 const FADE_IN := 4.0
 const FADE_OUT := 6.0
-const VOLUME := 0.55        # volumen lineal maximo
+const VOLUME := 0.75        # volumen lineal maximo
 
 var _player := AudioStreamPlayer.new()
 var _gap := FIRST_DELAY
@@ -23,6 +23,8 @@ var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	Sfx.setup_audio()
+	_player.bus = "Music"
 	_rng.randomize()
 	_player.volume_db = -80.0
 	add_child(_player)
@@ -47,6 +49,7 @@ func _play_next() -> void:
 	_last = i
 	var stream := load(TRACKS[i]) as AudioStream
 	if stream == null:
+		push_warning("No se pudo cargar la música: " + TRACKS[i])
 		_gap = GAP_MIN
 		return
 	_player.stream = stream
