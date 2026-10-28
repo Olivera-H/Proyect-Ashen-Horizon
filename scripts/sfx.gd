@@ -27,6 +27,34 @@ static func setup_audio() -> void:
 	music_level = clampf(float(cfg.get_value("audio", "music", 1.0)), 0.0, 1.0)
 
 
+## Aplica y guarda un volumen: kind = "master" | "music" | "sfx" (0..1).
+static func set_volume(kind: String, value: float) -> void:
+	var v := clampf(value, 0.0, 1.0)
+	match kind:
+		"master":
+			AudioServer.set_bus_volume_db(0, linear_to_db(maxf(v, 0.0001)))
+			AudioServer.set_bus_mute(0, v <= 0.001)
+		"music":
+			music_level = v
+		"sfx":
+			sfx_level = v
+	var cfg := ConfigFile.new()
+	cfg.load(AUDIO_CONFIG)
+	cfg.set_value("audio", kind, v)
+	cfg.save(AUDIO_CONFIG)
+
+
+static func get_volume(kind: String) -> float:
+	match kind:
+		"music":
+			return music_level
+		"sfx":
+			return sfx_level
+	var cfg := ConfigFile.new()
+	cfg.load(AUDIO_CONFIG)
+	return clampf(float(cfg.get_value("audio", "master", 0.8)), 0.0, 1.0)
+
+
 static func set_bus_level(name: String, value: float) -> void:
 	if name == "Music":
 		music_level = clampf(value, 0.0, 1.0)

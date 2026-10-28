@@ -221,6 +221,14 @@ func _build_ui() -> void:
 	add_child(touch_layer)
 	touch_layer.add_child(TouchControls.new())
 
+	var pause_layer := CanvasLayer.new()
+	pause_layer.layer = 40
+	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(pause_layer)
+	var pm := PauseMenu.new()
+	pm.main = self
+	pause_layer.add_child(pm)
+
 	player.toast.connect(func(t: String) -> void: hud.toast(t))
 	player.died.connect(_on_player_died)
 

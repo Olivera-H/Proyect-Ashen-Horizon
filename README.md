@@ -185,3 +185,7 @@ Los edificios generados por código llevan texturas de material (ladrillo, tablo
 - **Para usar tus propios sonidos**: pon un archivo con el mismo nombre (`.ogg` o `.wav`) en `assets/audio/sfx/`; `scripts/sfx.gd` busca primero `.ogg`.
 - API: `Sfx.play("pickup")`, `Sfx.play_at("zombie_hurt", pos)`, `Sfx.pick("step", 4)`, `Sfx.loop("rain_loop", true)`.
 - **Pantalla de inicio** (`scenes/title.tscn`, ahora escena principal): logo, ciudad en ruinas bajo la lluvia, menú JUGAR / CONTROLES / CRÉDITOS, táctil y con Enter/Espacio.
+
+## Menú de pausa
+
+Engranaje arriba a la derecha (junto al mapa) o tecla Esc: pausa el juego y permite ajustar volumen general/música/efectos (se guarda), ver los controles, volver al último refugio si te atascas y salir a la pantalla de inicio (pide confirmar). Código: `scripts/pause_menu.gd`.
