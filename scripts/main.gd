@@ -275,7 +275,7 @@ func _update_weather(delta: float) -> void:
 	_rain_t -= delta
 	if _rain_t <= 0.0:
 		_raining = not _raining
-		_rain_t = randf_range(25.0, 50.0) if _raining else randf_range(45.0, 90.0)
+		_rain_t = randf_range(75.0, 140.0) if _raining else randf_range(60.0, 120.0)
 		if _raining:
 			hud.toast("Empieza la lluvia ácida: busca techo.", 4.0)
 	weather.rain = move_toward(weather.rain, 1.0 if _raining else 0.0, delta * 0.3)
