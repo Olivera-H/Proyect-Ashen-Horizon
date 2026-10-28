@@ -12,31 +12,21 @@ const POOL_2D := 16
 static var _inst: Sfx = null
 static var _cache := {}
 const AUDIO_CONFIG := "user://audio_settings.cfg"
+static var sfx_level := 1.0
+static var music_level := 1.0
 
 static func setup_audio() -> void:
-	for name in ["Music", "SFX"]:
-		if AudioServer.get_bus_index(name) == -1:
-			AudioServer.add_bus()
-			var idx := AudioServer.bus_count - 1
-			AudioServer.set_bus_name(idx, name)
-			AudioServer.set_bus_send(idx, "Master")
 	var cfg := ConfigFile.new()
 	cfg.load(AUDIO_CONFIG)
-	for name in ["Music", "SFX"]:
-		set_bus_level(name, clampf(float(cfg.get_value("audio", name.to_lower(), 1.0)), 0.0, 1.0))
+	sfx_level = clampf(float(cfg.get_value("audio", "sfx", 1.0)), 0.0, 1.0)
+	music_level = clampf(float(cfg.get_value("audio", "music", 1.0)), 0.0, 1.0)
 
 
 static func set_bus_level(name: String, value: float) -> void:
-	var idx := AudioServer.get_bus_index(name)
-	if idx < 0:
-		return
-	AudioServer.set_bus_volume_db(idx, linear_to_db(maxf(value, 0.0001)))
-	AudioServer.set_bus_mute(idx, value <= 0.001)
-
-
-var _pool: Array[AudioStreamPlayer] = []
-var _pool2d: Array[AudioStreamPlayer2D] = []
-var _loops := {}
+	if name == "Music":
+		music_level = clampf(value, 0.0, 1.0)
+	elif name == "SFX":
+		sfx_level = clampf(value, 0.0, 1.0)
 
 
 static func ensure(tree: SceneTree) -> Sfx:
@@ -71,9 +61,9 @@ static func play(n: String, vol := 0.0, pitch_var := 0.05) -> void:
 		return
 	for p in _inst._pool:
 		if not p.playing:
-			p.bus = "SFX"
+			p.bus = "Master"
 			p.stream = s
-			p.volume_db = vol
+			p.volume_db = vol + linear_to_db(maxf(sfx_level, 0.0001))
 			p.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
 			p.play()
 			return
@@ -89,9 +79,9 @@ static func play_at(n: String, pos: Vector2, vol := 0.0, pitch_var := 0.08) -> v
 	for p in _inst._pool2d:
 		if not p.playing:
 			p.stream = s
-			p.bus = "SFX"
+			p.bus = "Master"
 			p.global_position = pos
-			p.volume_db = vol
+			p.volume_db = vol + linear_to_db(maxf(sfx_level, 0.0001))
 			p.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
 			p.play()
 			return
@@ -117,15 +107,21 @@ func _ready() -> void:
 	for i in POOL:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
-		p.bus = "SFX"
+		p.bus = "Master"
 		_pool.append(p)
 	for i in POOL_2D:
 		var q := AudioStreamPlayer2D.new()
 		q.max_distance = 260.0
 		q.attenuation = 1.6
 		add_child(q)
-		q.bus = "SFX"
+		q.bus = "Master"
 		_pool2d.append(q)
+
+
+func _process(_delta: float) -> void:
+	for p in _loops.values():
+		if p.playing and p.volume_db > -50.0:
+			pass
 
 
 func _set_loop(n: String, on: bool, vol: float) -> void:
@@ -141,7 +137,7 @@ func _set_loop(n: String, on: bool, vol: float) -> void:
 			s.loop_end = s.data.size() / 2
 		p = AudioStreamPlayer.new()
 		p.stream = s
-		p.bus = "SFX"
+		p.bus = "Master"
 		p.volume_db = -60.0
 		add_child(p)
 		_loops[n] = p
@@ -149,7 +145,7 @@ func _set_loop(n: String, on: bool, vol: float) -> void:
 	if on:
 		if not p.playing:
 			p.play()
-		tw.tween_property(p, "volume_db", vol, 1.2)
+		tw.tween_property(p, "volume_db", vol + linear_to_db(maxf(sfx_level, 0.0001)), 1.2)
 	else:
 		tw.tween_property(p, "volume_db", -60.0, 1.2)
 		tw.tween_callback(p.stop)
