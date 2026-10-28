@@ -16,10 +16,13 @@ var _go_t := -1.0
 var _flash := 0.0
 var _skyline: Array = []
 var _master_volume := 0.8
+var _music_volume := 1.0
+var _sfx_volume := 1.0
 
 
 func _ready() -> void:
 	_font = UiFont.get_font()
+	Sfx.setup_audio()
 	_load_volume()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 77
@@ -44,35 +47,49 @@ func _load_volume() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(AUDIO_CONFIG) == OK:
 		_master_volume = clampf(float(cfg.get_value("audio", "master", 0.8)), 0.0, 1.0)
+	_music_volume = clampf(float(cfg.get_value("audio", "music", 1.0)), 0.0, 1.0)
+	_sfx_volume = clampf(float(cfg.get_value("audio", "sfx", 1.0)), 0.0, 1.0)
 	_apply_volume()
 
 
 func _apply_volume() -> void:
 	AudioServer.set_bus_volume_db(MASTER_BUS, linear_to_db(maxf(_master_volume, 0.0001)))
 	AudioServer.set_bus_mute(MASTER_BUS, _master_volume <= 0.001)
+	Sfx.set_bus_level("Music", _music_volume)
+	Sfx.set_bus_level("SFX", _sfx_volume)
 
 
-func _set_volume(value: float) -> void:
-	_master_volume = clampf(value, 0.0, 1.0)
+func _set_volume(kind: String, value: float) -> void:
+	var v := clampf(value, 0.0, 1.0)
+	match kind:
+		"master":
+			_master_volume = v
+		"music":
+			_music_volume = v
+		"sfx":
+			_sfx_volume = v
 	_apply_volume()
 	var cfg := ConfigFile.new()
-	cfg.set_value("audio", "master", _master_volume)
+	cfg.load(AUDIO_CONFIG)
+	cfg.set_value("audio", kind, v)
 	cfg.save(AUDIO_CONFIG)
 	queue_redraw()
 
 
-func _volume_rect(vs: Vector2) -> Rect2:
-	return Rect2(vs.x * 0.5 - 112.0, vs.y * 0.65, 224.0, 18.0)
+func _volume_rect(vs: Vector2, index: int) -> Rect2:
+	return Rect2(vs.x * 0.5 - 112.0, vs.y * 0.56 + index * 44.0, 224.0, 14.0)
 
 
 func _adjust_volume(pos: Vector2) -> bool:
 	if _panel != "configuracion":
 		return false
-	var bar := _volume_rect(get_viewport_rect().size)
-	if not bar.grow(12.0).has_point(pos):
-		return false
-	_set_volume((pos.x - bar.position.x) / bar.size.x)
-	return true
+	var keys := ["master", "music", "sfx"]
+	for i in 3:
+		var bar := _volume_rect(get_viewport_rect().size, i)
+		if bar.grow(12.0).has_point(pos):
+			_set_volume(keys[i], (pos.x - bar.position.x) / bar.size.x)
+			return true
+	return false
 
 
 func _start_audio() -> void:
@@ -232,7 +249,7 @@ func _draw() -> void:
 		draw_rect(pr, Color(0.75, 0.7, 0.62, 0.8), false, 1.0)
 		var lines: Array = []
 		if _panel == "configuracion":
-			lines = ["CONFIGURACIÓN DE AUDIO", "Ajusta el volumen general del juego."]
+			lines = ["CONFIGURACIÓN DE AUDIO", "Ajusta música y efectos por separado."]
 		elif _panel == "controles":
 			lines = ["MÓVIL: joystick izquierdo para moverte; botones a la derecha para",
 				"atacar/disparar, esquivar, linterna, reparar y abrir la mochila.",
@@ -250,12 +267,16 @@ func _draw() -> void:
 			_txt(l, Vector2(pr.position.x, yy), 10, Color(0.88, 0.86, 0.8), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
 			yy += 16.0
 		if _panel == "configuracion":
-			var bar := _volume_rect(vs)
-			_txt("VOLUMEN GENERAL: %d%%" % int(round(_master_volume * 100.0)), Vector2(pr.position.x, bar.position.y - 12.0), 12, Color(0.9, 0.9, 0.8), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
-			draw_rect(bar, Color(0.13, 0.13, 0.16))
-			draw_rect(Rect2(bar.position, Vector2(bar.size.x * _master_volume, bar.size.y)), Color(0.58, 0.78, 0.37))
-			draw_rect(bar, Color(0.8, 0.8, 0.7), false, 1.0)
-			draw_rect(Rect2(bar.position.x + bar.size.x * _master_volume - 3.0, bar.position.y - 3.0, 6.0, bar.size.y + 6.0), Color(0.95, 0.9, 0.72))
+			var names := ["GENERAL", "MÚSICA", "EFECTOS"]
+			var values := [_master_volume, _music_volume, _sfx_volume]
+			for i in 3:
+				var bar := _volume_rect(vs, i)
+				var value: float = values[i]
+				_txt("%s: %d%%" % [names[i], int(round(value * 100.0))], Vector2(pr.position.x, bar.position.y - 7.0), 10, Color(0.9, 0.9, 0.8), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+				draw_rect(bar, Color(0.13, 0.13, 0.16))
+				draw_rect(Rect2(bar.position, Vector2(bar.size.x * value, bar.size.y)), Color(0.58, 0.78, 0.37))
+				draw_rect(bar, Color(0.8, 0.8, 0.7), false, 1.0)
+				draw_rect(Rect2(bar.position.x + bar.size.x * value - 3.0, bar.position.y - 3.0, 6.0, bar.size.y + 6.0), Color(0.95, 0.9, 0.72))
 		_txt("toca para volver", Vector2(pr.position.x, pr.end.y - 8.0), 9, Color(0.7, 0.7, 0.7, 0.6 + 0.4 * sin(_t * 4.0)), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
 	_txt("v0.9 · Acto I–II", Vector2(0, vs.y - 6.0), 8, Color(0.6, 0.6, 0.6, 0.7), HORIZONTAL_ALIGNMENT_RIGHT, vs.x - 8.0)
 
