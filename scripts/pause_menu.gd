@@ -13,6 +13,8 @@ var _font: Font
 var _t := 0.0
 var _view := ""             # "", "controles"
 var _confirm := ""          # "", "salir", "atascado"
+var _last_press_ms := -1000
+var _last_press_pos := Vector2(-100, -100)
 var _buttons: Array = []    # {rect, id}
 
 
@@ -85,6 +87,13 @@ func _input(event: InputEvent) -> void:
 		return
 	else:
 		return
+	# un mismo toque llega como evento tactil Y de raton (emulacion): atender solo el primero
+	var now := Time.get_ticks_msec()
+	if now - _last_press_ms < 300 and pos.distance_to(_last_press_pos) < 16.0:
+		get_viewport().set_input_as_handled()
+		return
+	_last_press_ms = now
+	_last_press_pos = pos
 	if not open:
 		if _can_show() and _gear_rect().grow(6.0).has_point(pos):
 			set_open(true)

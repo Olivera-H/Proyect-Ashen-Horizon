@@ -14,6 +14,11 @@ var _panel := ""            # "", "controles", "creditos"
 var _buttons: Array = []    # {rect, id, text}
 var _go_t := -1.0
 var _flash := 0.0
+var _last_press_ms := -1000
+var _last_press_pos := Vector2(-100, -100)
+var _ash: Array = []
+var _zombies: Array = []
+const TIPS := ["Los ruidos atraen a los infectados: corre solo si es necesario.", "La lluvia ácida quema. Busca techo o una máscara antigás.", "Los refugios curan y guardan tu progreso.", "Revisa las casas: el botín brilla dentro.", "Una linterna encendida te delata de lejos."]
 var _skyline: Array = []
 var _master_volume := 0.8
 var _music_volume := 1.0
@@ -39,6 +44,10 @@ func _ready() -> void:
 		_skyline.append([x, w, rng.randf_range(0.08, 0.28), rng.randi() % 3])
 		x += w * rng.randf_range(0.7, 1.1)
 	_create_skin_preview()
+	for i in 55:
+		_ash.append([rng.randf(), rng.randf(), rng.randf_range(0.01, 0.035), rng.randf_range(0.6, 1.6), rng.randf()])
+	for i in 4:
+		_zombies.append([rng.randf(), rng.randf_range(0.012, 0.03), rng.randf_range(0.9, 1.25), rng.randf() * 6.0])
 	Sfx.ensure(get_tree())
 	_start_audio()
 	var m := Music.new()
@@ -173,6 +182,11 @@ func _input(event: InputEvent) -> void:
 		return
 	if not pressed:
 		return
+	var now := Time.get_ticks_msec()   # un toque llega como tactil Y raton: atender solo el primero
+	if now - _last_press_ms < 300 and pos.distance_to(_last_press_pos) < 16.0:
+		return
+	_last_press_ms = now
+	_last_press_pos = pos
 	if _adjust_volume(pos):
 		return
 	for b in _buttons:
@@ -238,6 +252,22 @@ func _draw() -> void:
 				wx += 8.0
 			wy += 9.0
 	draw_rect(Rect2(0, base, vs.x, vs.y - base), Color(0.025, 0.028, 0.035))
+	# resplandor del horizonte y zombis que deambulan
+	for i in 10:
+		var k2 := float(i) / 10.0
+		draw_rect(Rect2(0, base - 46.0 + i * 5.0, vs.x, 6.0), Color(0.55, 0.12, 0.08, 0.035 * (1.0 - k2) + 0.01))
+	for z in _zombies:
+		var zx := fposmod(z[0] * vs.x + _t * z[1] * vs.x, vs.x + 60.0) - 30.0
+		var sc: float = z[2]
+		var sw := sin(_t * 2.2 + z[3])
+		var zy := base + 10.0 * (sc - 1.0) + 6.0
+		var zc := Color(0.012, 0.014, 0.02)
+		draw_rect(Rect2(zx - 3.0 * sc + sw * 0.5, zy - 13.0 * sc, 6.0 * sc, 9.0 * sc), zc)
+		draw_rect(Rect2(zx - 2.0 * sc + sw, zy - 18.0 * sc, 4.0 * sc, 5.0 * sc), zc)
+		draw_rect(Rect2(zx + 2.0 * sc, zy - 12.0 * sc + sw, 7.0 * sc, 2.0 * sc), zc)
+		draw_rect(Rect2(zx - 3.0 * sc, zy - 4.0 * sc, 2.5 * sc, 4.0 * sc + sw), zc)
+		draw_rect(Rect2(zx + 0.5 * sc, zy - 4.0 * sc, 2.5 * sc, 4.0 * sc - sw), zc)
+		draw_rect(Rect2(zx + 1.0 * sc, zy - 16.5 * sc, 1.2, 1.2), Color(0.9, 0.15, 0.1, 0.8))
 	# silueta de superviviente con linterna
 	var px := vs.x * 0.2
 	draw_rect(Rect2(px - 3, base - 14, 6, 14), Color(0.01, 0.01, 0.015))
@@ -249,6 +279,14 @@ func _draw() -> void:
 		var y := fposmod(d[1] + _t * 0.9 * d[2], 1.0)
 		var x := fposmod(d[0] - y * 0.12 + _t * 0.02, 1.0)
 		draw_line(Vector2(x * vs.x, y * vs.y), Vector2(x * vs.x - 2, y * vs.y + 7), Color(0.55, 0.75, 0.6, 0.35))
+	# ceniza que sube y bruma a ras de suelo
+	for a in _ash:
+		var ay := fposmod(a[1] - _t * a[2], 1.0)
+		var ax := fposmod(a[0] + sin(_t * a[3] + a[4] * 6.0) * 0.012, 1.0)
+		draw_rect(Rect2(ax * vs.x, ay * vs.y, 1.5, 1.5), Color(0.85, 0.5, 0.3, 0.25 + 0.35 * a[4]))
+	for i in 3:
+		var fx := fposmod(_t * (6.0 + i * 4.0) + i * 200.0, vs.x + 400.0) - 400.0
+		draw_rect(Rect2(fx, base - 8.0 + i * 7.0, 400.0, 14.0), Color(0.5, 0.55, 0.6, 0.035))
 	# relampago
 	if _flash > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, vs), Color(0.8, 0.9, 1.0, _flash * 0.16))
@@ -258,11 +296,17 @@ func _draw() -> void:
 		draw_rect(Rect2(m, m, vs.x - 2.0 * m, vs.y - 2.0 * m), Color(0, 0, 0, 0.07), false, 10.0)
 
 	# logo
-	var ly := vs.y * 0.26
+	var col_x := maxf(24.0, cx - 230.0)
+	var col_w := 200.0
+	var ly := vs.y * 0.2
 	var shake := 0.0 if randf() > 0.02 else 1.0
-	_txt("ASHEN", Vector2(shake, ly), 44, Color(0.9, 0.82, 0.7), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
-	_txt("HORIZON", Vector2(0, ly + 40.0), 44, Color(0.78, 0.16, 0.12), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
-	_txt("supervivencia en un mundo de ceniza", Vector2(0, ly + 58.0), 10, Color(0.7, 0.7, 0.72, 0.8), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
+	var neon := 1.0 if fmod(_t, 7.0) > 0.35 or fmod(_t * 23.0, 1.0) > 0.5 else 0.45   # parpadeo ocasional
+	for gi in 5:
+		draw_circle(Vector2(col_x + col_w * 0.5, ly + 20.0), 150.0 - gi * 28.0, Color(0.5, 0.08, 0.05, 0.018 * neon))
+	_txt("ASHEN", Vector2(col_x - 20.0 + shake, ly), 44, Color(0.9, 0.82, 0.7), HORIZONTAL_ALIGNMENT_CENTER, col_w + 40.0)
+	_txt("HORIZON", Vector2(col_x - 20.0, ly + 40.0), 44, Color(0.85 * neon, 0.16 * neon, 0.12 * neon), HORIZONTAL_ALIGNMENT_CENTER, col_w + 40.0)
+	draw_rect(Rect2(col_x, ly + 49.0, col_w, 1.0), Color(0.75, 0.7, 0.62, 0.5))
+	_txt("supervivencia en un mundo de ceniza", Vector2(col_x - 20.0, ly + 64.0), 9, Color(0.7, 0.7, 0.72, 0.85), HORIZONTAL_ALIGNMENT_CENTER, col_w + 40.0)
 
 	# botones
 	_buttons.clear()
@@ -274,17 +318,20 @@ func _draw() -> void:
 		_txt("SUPERVIVIENTE", skin_box.position + Vector2(0, 19), 12, Color(0.87, 0.91, 0.75), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
 		_txt("MATEO VARGAS", skin_box.position + Vector2(0, 133), 12, Color(0.94, 0.87, 0.73), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
 		_txt("SKIN 01 / EQUIPADA", skin_box.position + Vector2(0, 149), 9, Color(0.58, 0.79, 0.55), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
-		var bw := 150.0
+		var bw := col_w
 		var bh := 24.0
-		var by := vs.y * 0.56
+		var by := vs.y * 0.52
 		var items := [["jugar", "JUGAR"], ["controles", "CONTROLES"], ["configuracion", "CONFIGURACIÓN"], ["creditos", "CRÉDITOS"]]
 		for i in items.size():
-			var r := Rect2(maxf(18.0, cx - 190.0), by + i * (bh + 8.0), bw, bh)
+			var r := Rect2(col_x, by + i * (bh + 8.0), bw, bh)
 			_buttons.append({"rect": r, "id": items[i][0]})
 			var pulse := 0.5 + 0.5 * sin(_t * 3.0) if i == 0 else 0.0
 			var fill := Color(0.10, 0.10, 0.12, 0.85).lerp(Color(0.45, 0.10, 0.08, 0.9), pulse * 0.8)
 			draw_rect(r, fill)
 			draw_rect(r, Color(0.75, 0.7, 0.62, 0.8), false, 1.0)
+			draw_rect(Rect2(r.position.x, r.position.y, 3.0, bh), Color(0.85, 0.2, 0.14) if i == 0 else Color(0.5, 0.55, 0.45))
+			if i == 0 and fmod(_t, 1.0) < 0.6:
+				_txt(">", Vector2(r.position.x + 9.0, r.position.y + 17.0), 14, Color(0.95, 0.4, 0.3))
 			_txt(items[i][1], Vector2(r.position.x, r.position.y + 17.0), 14, Color(0.95, 0.92, 0.85), HORIZONTAL_ALIGNMENT_CENTER, bw)
 	else:
 		var pr := Rect2(cx - 190, vs.y * 0.36, 380, vs.y * 0.58)
@@ -321,6 +368,10 @@ func _draw() -> void:
 				draw_rect(bar, Color(0.8, 0.8, 0.7), false, 1.0)
 				draw_rect(Rect2(bar.position.x + bar.size.x * value - 3.0, bar.position.y - 3.0, 6.0, bar.size.y + 6.0), Color(0.95, 0.9, 0.72))
 		_txt("toca para volver", Vector2(pr.position.x, pr.end.y - 8.0), 9, Color(0.7, 0.7, 0.7, 0.6 + 0.4 * sin(_t * 4.0)), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+	if _panel == "":
+		var tip: String = TIPS[int(_t / 6.0) % TIPS.size()]
+		var ta := clampf(minf(fmod(_t, 6.0), 6.0 - fmod(_t, 6.0)), 0.0, 1.0)
+		_txt(tip, Vector2(0, vs.y - 22.0), 10, Color(0.85, 0.82, 0.7, ta * 0.9), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
 	_txt("v0.9 · Acto I–II", Vector2(0, vs.y - 6.0), 8, Color(0.6, 0.6, 0.6, 0.7), HORIZONTAL_ALIGNMENT_RIGHT, vs.x - 8.0)
 
 	# fundido al empezar

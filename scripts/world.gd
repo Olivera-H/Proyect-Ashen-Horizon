@@ -338,7 +338,7 @@ func _place_buildings() -> void:
 			continue
 		if block.position.x == 24 and block.position.y == 22:
 			# bloque reservado al refugio: casa con un gran patio cercado (futuro huerto)
-			_build_house(Vector2i(31, 27), "chalet", block)
+			_build_house(Vector2i(28, 27), "chalet", block)
 			refuge_b = buildings[buildings.size() - 1]
 			_build_fence_ring(refuge_b, Rect2i(25, 23, 25, 21), "refuge_sign")
 			fence = fences[fences.size() - 1]
