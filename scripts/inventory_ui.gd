@@ -133,6 +133,8 @@ func _tap(pos: Vector2) -> bool:
 
 
 func set_open(v: bool) -> void:
+	if v != open:
+		Sfx.play("ui_open" if v else "ui_close", -4.0)
 	open = v
 	selected = -1
 	queue_redraw()
@@ -145,11 +147,13 @@ func _tap_slot(i: int) -> void:
 	if selected == -1:
 		if inv.slots[i] != null:
 			selected = i
+			Sfx.play("ui_blip", -2.0)
 		return
 	if selected == i:
 		selected = -1
 		return
 	if inv.move(selected, i):
+		Sfx.play("ui_click", -2.0)
 		selected = -1
 	elif inv.slots[i] != null:
 		player.toast.emit("Ahí no se puede guardar eso.")

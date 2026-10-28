@@ -75,6 +75,7 @@ func _ready() -> void:
 	houses.setup(world, houses_floor, ents)
 
 	add_child(Music.new())
+	Sfx.ensure(get_tree())
 	_find_rects()
 	_spawn_player()
 	_spawn_zombies()
@@ -252,6 +253,7 @@ func _input(event: InputEvent) -> void:
 		go = true
 	if not go:
 		return
+	Sfx.play("ui_respawn", -2.0)
 	if _state == "dead":
 		player.revive(checkpoint)
 	_state = "play"
@@ -277,6 +279,9 @@ func _update_weather(delta: float) -> void:
 		if _raining:
 			hud.toast("Empieza la lluvia ácida: busca techo.", 4.0)
 	weather.rain = move_toward(weather.rain, 1.0 if _raining else 0.0, delta * 0.3)
+	if _raining != _rain_snd:
+		_rain_snd = _raining
+		Sfx.loop("rain_loop", _raining, -9.0)
 
 	var tile := world.to_tile(player.global_position)
 	var fog_target := 0.15
@@ -318,6 +323,7 @@ func _check_pickups() -> void:
 		var taken := false
 		if kind == "note":
 			hud.toast(p["text"], 9.0)
+			Sfx.play("note", -3.0)
 			hud.notes_found += 1
 			taken = true
 		else:
@@ -339,6 +345,7 @@ func _check_refuge(delta: float) -> void:
 		_in_refuge = false
 
 
+var _rain_snd := false
 var _story := 0     # 0 radio, 1 tarjeta, 2 puerta lab abierta, 4 Acto II, 5 llave, 6 bunker abierto, 7 suero, 8 fin
 var _door_hint_t := 0.0
 var _radio_t := 6.0
@@ -376,9 +383,12 @@ func _update_story(delta: float) -> void:
 				if inv.owns("tarjeta"):
 					_story = 2
 					houses.open_door("lab")
+					Sfx.play("access_ok")
+					Sfx.play("door_open", -2.0)
 					hud.toast("La tarjeta abre la puerta del laboratorio. Busca la terminal del fondo.", 6.0)
 			if _story == 1 and _near_door(world.lab_door_rect) and _door_hint_t <= 0.0:
 				_door_hint_t = 6.0
+				Sfx.play("access_denied", -4.0)
 				hud.toast("Puerta bloqueada: requiere una Tarjeta Horizonte (nivel 3).", 4.0)
 		2:
 			if world.lab_terminal != Vector2.ZERO and player.global_position.distance_to(world.lab_terminal) < 22.0:
@@ -401,6 +411,8 @@ func _update_story(delta: float) -> void:
 				if inv.owns("llave"):
 					_story = 6
 					houses.open_door("bunker")
+					Sfx.play("key_turn")
+					Sfx.play("door_open", -2.0)
 					hud.toast("La llave abre el búnker. Llega hasta la terminal del fondo.", 6.0)
 				elif _door_hint_t <= 0.0:
 					_door_hint_t = 6.0
@@ -409,6 +421,8 @@ func _update_story(delta: float) -> void:
 				_story = 7
 				inv.add("suero", 1)
 				_spawn_horde(world.bunker_b["center"], 26)
+				Sfx.play("alarm", -2.0, 0.0)
+				Sfx.play("horde_rise", -2.0, 0.0)
 				_set_main("Refugio")
 				hud.toast("Suero H-7 recuperado. ¡La alarma de contención suena y los infectados vienen hacia ti!", 8.0)
 				hud.toast("Radio, Lena: «Vuelve al refugio, Mateo. Corre.»", 7.0)
@@ -421,6 +435,7 @@ func _update_story(delta: float) -> void:
 				hud.end_kind = "won"
 	if _story == 5 and _near_door(world.bunker_door_rect) and not inv.owns("llave") and _door_hint_t <= 0.0:
 		_door_hint_t = 6.0
+		Sfx.play("door_locked", -2.0)
 		hud.toast("Puerta blindada: requiere la llave del búnker H-7.", 4.0)
 
 

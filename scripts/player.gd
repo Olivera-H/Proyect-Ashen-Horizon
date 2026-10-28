@@ -187,9 +187,24 @@ func _physics_process(delta: float) -> void:
 			use_slot(k)
 	if Input.is_action_just_pressed("flashlight"):
 		flashlight_on = not flashlight_on
+		Sfx.play("flashlight", -6.0)
 
 	move_and_slide()
+	_footsteps(delta)
 	_update_visuals(delta)
+
+
+var _step_t := 0.0
+
+
+func _footsteps(delta: float) -> void:
+	if velocity.length() < 12.0 or _dodge_t > 0.0:
+		_step_t = 0.12
+		return
+	_step_t -= delta
+	if _step_t <= 0.0:
+		_step_t = 0.26 if running else 0.4
+		Sfx.pick("step", 4, -3.0 if running else -9.0)
 
 
 func _tick_timers(delta: float) -> void:
@@ -243,6 +258,7 @@ func _try_dodge(dir: Vector2) -> void:
 	_invuln = maxf(_invuln, 0.3)
 	stamina -= 20.0
 	make_noise(60.0, 0.3)
+	Sfx.play("dodge", -4.0)
 
 
 func _try_attack() -> void:
@@ -257,6 +273,7 @@ func _try_attack() -> void:
 	_swing_dir = facing
 	stamina -= 8.0
 	make_noise(float(def["noise"]), 0.35)
+	Sfx.play("swing", -3.0, 0.12)
 	var armed := weapon_durability > 0.0
 	var dmg: float = (float(def["dmg"]) if armed else 6.0) * float(data["melee_damage"])
 	if has_skill("golpe"):
@@ -268,6 +285,8 @@ func _try_attack() -> void:
 		if to_z.length() <= reach and to_z.normalized().dot(facing) > 0.3:
 			z.take_damage(dmg, facing * 140.0, 0.35 if armed else 0.15)
 			hit_any = true
+	if hit_any:
+		Sfx.play("hit_metal" if weapon_id == "machete" or weapon_id == "hacha" else "hit", -2.0)
 	if hit_any and armed:
 		weapon_durability = maxf(0.0, weapon_durability - 1.5)
 		if weapon_durability <= 0.0:
@@ -278,6 +297,7 @@ func _try_shoot(def: Dictionary) -> void:
 	var ammo_id: String = def["ammo"]
 	if inventory.count(ammo_id) <= 0:
 		_attack_cd = 0.3
+		Sfx.play("click_empty", -2.0)
 		toast.emit("Sin munición: busca %s." % ItemDefs.item_name(ammo_id).to_lower())
 		return
 	inventory.remove(ammo_id, 1)
@@ -286,6 +306,9 @@ func _try_shoot(def: Dictionary) -> void:
 	_swing_dir = facing
 	stamina -= 3.0
 	make_noise(float(def["noise"]), 0.6)
+	Sfx.play("shot_" + weapon_id, -2.0, 0.04)
+	if weapon_id == "escopeta":
+		get_tree().create_timer(0.45).timeout.connect(func(): Sfx.play("pump", -6.0))
 	var dmg: float = float(def["dmg"])
 	var world_node := get_tree().get_first_node_in_group("world")
 	# punteria: Mateo apunta peor (aim_spread alto) y Lena mejor
@@ -319,6 +342,7 @@ func equip_from_slot(i: int) -> void:
 		back["d"] = old_d
 	inventory.slots[i] = back
 	inventory.changed.emit()
+	Sfx.play("equip", -4.0)
 	toast.emit("Equipaste: %s" % weapon_name)
 
 
@@ -333,6 +357,7 @@ func _try_repair() -> void:
 		toast.emit("El arma ya está en buen estado.")
 		return
 	inventory.remove("scrap", 2)
+	Sfx.play("repair", -3.0)
 	var gain := 20.0 * float(data["craft_bonus"]) * (1.5 if has_skill("manos") else 1.0)
 	weapon_durability = minf(weapon_max, weapon_durability + gain)
 	toast.emit("Arma reparada.")
@@ -350,6 +375,12 @@ func collect(kind: String) -> bool:
 		toast.emit("Inventario lleno.")
 		return false
 	var got := amount - left
+	if kind in ["tarjeta", "llave", "suero"]:
+		Sfx.play("pickup_key", -2.0)
+	elif kind == "mascara":
+		Sfx.play("mask_on", -2.0)
+	else:
+		Sfx.play("pickup", -4.0)
 	toast.emit("+%d %s" % [got, ItemDefs.item_name(kind).to_lower()])
 	return left == 0
 
@@ -385,18 +416,21 @@ func use_slot(i: int) -> bool:
 				return false
 			health = minf(max_health, health + 25.0)
 			infection = maxf(0.0, infection - 20.0)
+			Sfx.play("heal", -3.0)
 			toast.emit("Vendaje: salud recuperada")
 		"food":
 			if hunger >= 99.0:
 				toast.emit("No tienes hambre.")
 				return false
 			hunger = minf(100.0, hunger + 35.0)
+			Sfx.play("eat", -3.0)
 			toast.emit("Comida: hambre saciada")
 		"water":
 			if thirst >= 99.0:
 				toast.emit("No tienes sed.")
 				return false
 			thirst = minf(100.0, thirst + 40.0)
+			Sfx.play("drink", -3.0)
 			toast.emit("Agua: sed saciada")
 		"scrap":
 			if scrap < 2 or weapon_is_gun or weapon_durability >= weapon_max:
@@ -415,6 +449,7 @@ func take_damage(amount: float, from_pos: Vector2) -> void:
 		return
 	health -= amount
 	_invuln = 0.55
+	Sfx.play("hurt", -2.0)
 	velocity += (global_position - from_pos).normalized() * 120.0
 	if randf() < 0.25:
 		infection = minf(100.0, infection + 12.0)
@@ -453,6 +488,7 @@ func _die() -> void:
 	sprite.stop()
 	sprite.modulate = Color(0.5, 0.2, 0.2)
 	flash.enabled = false
+	Sfx.play("death", 0.0, 0.0)
 	died.emit()
 
 

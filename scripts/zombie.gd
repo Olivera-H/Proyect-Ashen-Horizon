@@ -125,6 +125,7 @@ func take_damage(amount: float, knockback: Vector2, stun_time: float) -> void:
 	_knock = knockback * knock_resist
 	_stun = maxf(_stun, stun_time * maxf(knock_resist, 0.3))
 	_flash_t = 0.15
+	Sfx.play_at("zombie_die" if health <= 0.0 else "zombie_hurt", global_position, 0.0)
 	if player != null and not player.dead:
 		state = State.CHASE
 		_target = player.global_position
@@ -183,6 +184,8 @@ func _perceive() -> void:
 	# vista: cono frontal, con mas alcance si el jugador lleva la linterna
 	var sight := (SIGHT_RANGE_LIGHT if player.flashlight_on else SIGHT_RANGE) * sight_mult
 	if dist < sight and (to_p.normalized().dot(facing) > SIGHT_DOT or dist < 24.0) and _has_line_of_sight():
+		if state != State.CHASE:
+			Sfx.pick_at("zombie_growl", 3, global_position, -2.0)
 		state = State.CHASE
 		_target = player.global_position
 		return
@@ -241,6 +244,7 @@ func _do_chase() -> float:
 	if to_p.length() < ATTACK_RANGE * body_scale and _attack_cd <= 0.0:
 		_attack_cd = 1.0
 		_atk_t = 0.4
+		Sfx.play_at("zombie_attack", global_position, 0.0)
 		player.take_damage(damage, global_position)
 	return chase_speed
 

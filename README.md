@@ -177,3 +177,11 @@ Los edificios generados por código llevan texturas de material (ladrillo, tablo
 
 - Pantalla de muerte: fundido rojo con viñeta, título con goteo de sangre, causa de la muerte, tiempo sobrevivido, zombis abatidos, notas, consejo aleatorio y botón pulsante para reaparecer.
 - Edificios: ampliación Scale2x (diagonales suaves), sombras de muebles, alero con sombra, canalones, farol y felpudo en la puerta, techos a dos aguas con luz/sombra y chimenea.
+
+
+## Sonido y pantalla de inicio
+
+- **Efectos de sonido** (48 archivos en `assets/audio/sfx/`): pasos, golpes, disparos por arma, recoger, curar/comer/beber, puertas y terminales, zombis (gruñido, golpe, ataque, muerte), lluvia en bucle, alarma, UI, herida y muerte. Se sintetizan con `python3 tools/gen_sfx.py` (numpy/scipy).
+- **Para usar tus propios sonidos**: pon un archivo con el mismo nombre (`.ogg` o `.wav`) en `assets/audio/sfx/`; `scripts/sfx.gd` busca primero `.ogg`.
+- API: `Sfx.play("pickup")`, `Sfx.play_at("zombie_hurt", pos)`, `Sfx.pick("step", 4)`, `Sfx.loop("rain_loop", true)`.
+- **Pantalla de inicio** (`scenes/title.tscn`, ahora escena principal): logo, ciudad en ruinas bajo la lluvia, menú JUGAR / CONTROLES / CRÉDITOS, táctil y con Enter/Espacio.
