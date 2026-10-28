@@ -15,6 +15,11 @@ const AUDIO_CONFIG := "user://audio_settings.cfg"
 static var sfx_level := 1.0
 static var music_level := 1.0
 
+var _pool: Array[AudioStreamPlayer] = []
+var _pool2d: Array[AudioStreamPlayer2D] = []
+var _loops := {}
+
+
 static func setup_audio() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(AUDIO_CONFIG)
