@@ -24,7 +24,7 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	Sfx.setup_audio()
-	_player.bus = "Music"
+	_player.bus = "Master"
 	_rng.randomize()
 	_player.volume_db = -80.0
 	add_child(_player)
@@ -35,7 +35,7 @@ func _process(delta: float) -> void:
 		var len := _player.stream.get_length()
 		var pos := _player.get_playback_position()
 		var k := minf(clampf(pos / FADE_IN, 0.0, 1.0), clampf((len - pos) / FADE_OUT, 0.0, 1.0))
-		_player.volume_db = linear_to_db(maxf(0.0001, VOLUME * k))
+		_player.volume_db = linear_to_db(maxf(0.0001, VOLUME * Sfx.music_level * k))
 		return
 	_gap -= delta
 	if _gap <= 0.0:
