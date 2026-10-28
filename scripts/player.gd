@@ -204,7 +204,7 @@ func _footsteps(delta: float) -> void:
 	_step_t -= delta
 	if _step_t <= 0.0:
 		_step_t = 0.26 if running else 0.4
-		Sfx.pick("step", 4, -3.0 if running else -9.0)
+		Sfx.pick("step", 4, -11.0 if running else -17.0)
 
 
 func _tick_timers(delta: float) -> void:
