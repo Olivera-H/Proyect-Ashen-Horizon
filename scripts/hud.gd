@@ -9,6 +9,7 @@ const BAR_H := 6.0
 var player: Player
 var world: World
 var goals: Array = []
+var hint := ""      # mensaje fijo de objetivo, abajo en pantalla
 var minimap: Minimap
 var bars: StatBars
 var inventory_ui: InventoryUI
@@ -86,6 +87,7 @@ func _draw() -> void:
 	_draw_clock(vs)
 	_draw_goals(vs)
 	_draw_toasts(vs)
+	_draw_hint(vs)
 	if end_kind != "":
 		_draw_end(vs)
 
@@ -132,6 +134,8 @@ func _draw_goals(vs: Vector2) -> void:
 	var right := vs.x - 10.0
 	var y := minimap.list_top() if minimap != null else 14.0
 	for g in goals:
+		if not goal_visible(g, player):
+			continue
 		var gp: Vector2 = g["pos"]
 		var meters := int(player.global_position.distance_to(gp) / 8.0)
 		var col := Color("f1c40f") if g["main"] else Color("5dd6e8")
@@ -139,8 +143,33 @@ func _draw_goals(vs: Vector2) -> void:
 		y += 11.0
 
 
+## Que objetivos se muestran (lista y minimapa): el refugio siempre; el laboratorio solo con la
+## tarjeta; el hospital nunca; la base militar y demas, solo cuando son el objetivo principal.
+static func goal_visible(g: Dictionary, p: Player) -> bool:
+	var n: String = g["name"]
+	if n == "Refugio":
+		return true
+	if n == "Hospital":
+		return false
+	if n == "Laboratorio Horizonte":
+		return p != null and p.inventory.owns("tarjeta") and bool(g["main"])
+	if n == "Base militar" or n == "Búnker H-7":
+		return bool(g["main"])
+	return true
+
+
+func _draw_hint(vs: Vector2) -> void:
+	if hint == "" or end_kind != "":
+		return
+	var pulse := 0.8 + 0.2 * sin(_t * 3.0)
+	var sz := _font.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 11)
+	var y := vs.y - 56.0
+	draw_rect(Rect2(vs.x * 0.5 - sz.x * 0.5 - 8.0, y - 12.0, sz.x + 16.0, 18.0), Color(0, 0, 0, 0.6))
+	_txt(Vector2(0, y), hint, 11, Color(0.96, 0.82, 0.3, pulse), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
+
+
 func _draw_toasts(vs: Vector2) -> void:
-	var y := vs.y - 70.0
+	var y := vs.y - 82.0
 	var width := 300.0
 	for i in range(_toasts.size() - 1, -1, -1):
 		var t: Array = _toasts[i]

@@ -189,3 +189,9 @@ Los edificios generados por código llevan texturas de material (ladrillo, tablo
 ## Menú de pausa
 
 Engranaje arriba a la derecha (junto al mapa) o tecla Esc: pausa el juego y permite ajustar volumen general/música/efectos (se guarda), ver los controles, volver al último refugio si te atascas y salir a la pantalla de inicio (pide confirmar). Código: `scripts/pause_menu.gd`.
+
+## Refugio ampliado y objetivos
+
+- El refugio ocupa un bloque propio (chalet + patio cercado de 25×21 tiles, sin árboles ni obstáculos dentro, listo para un futuro huerto).
+- La tarjeta Horizonte aparece siempre en una de las casas cercanas al refugio. Al inicio sale el mensaje fijo «Investiga la zona en busca de la tarjeta de acceso».
+- La lista y el minimapa muestran solo el refugio; el laboratorio aparece al tener la tarjeta. Hospital y base militar ya no muestran distancia (la base y el búnker solo salen cuando son el objetivo principal).

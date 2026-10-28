@@ -82,6 +82,11 @@ static func place(w: World) -> void:
 	w.props.clear()
 	w.decals.clear()
 	var near := _near_buildings(w)
+	if not w.fence.is_empty():   # patio del refugio despejado (futuro huerto)
+		var fr: Rect2i = w.fence["ring"]
+		for y in range(fr.position.y, fr.end.y):
+			for x in range(fr.position.x, fr.end.x):
+				w.prop_block[y * World.W + x] = 1
 	_intersections(w)
 	_highway_signs(w)
 	_lamps(w)

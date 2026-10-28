@@ -336,6 +336,13 @@ func _place_buildings() -> void:
 		if block.position.x == 120 and block.position.y == 55:
 			_build_base(block)
 			continue
+		if block.position.x == 24 and block.position.y == 22:
+			# bloque reservado al refugio: casa con un gran patio cercado (futuro huerto)
+			_build_house(Vector2i(31, 27), "chalet", block)
+			refuge_b = buildings[buildings.size() - 1]
+			_build_fence_ring(refuge_b, Rect2i(25, 23, 25, 21), "refuge_sign")
+			fence = fences[fences.size() - 1]
+			continue
 		if block.position.x == 180 and block.position.y == 22:
 			_build_house(Vector2i(189, 26), "bunker", block)
 			bunker_b = buildings[buildings.size() - 1]
@@ -514,8 +521,11 @@ func _pick_start_and_objectives() -> void:
 		if d2 < best_hosp:
 			best_hosp = d2
 			hospital = b
+	if not refuge_b.is_empty():
+		refuge = refuge_b
 	objectives.append({"name": "Refugio", "pos": refuge["center"], "main": false})
-	_build_fence(refuge)
+	if refuge_b.is_empty():
+		_build_fence(refuge)
 	refuge_zone = fence["ring"] if not fence.is_empty() else (refuge["rect"] as Rect2i).grow(3)
 	start_pos = _free_spot_in(refuge)   # el jugador nace dentro del refugio, en suelo libre
 	if hospital == refuge:
@@ -527,14 +537,14 @@ func _pick_start_and_objectives() -> void:
 		objectives.append({"name": "Base militar", "pos": base_b["center"], "main": false})
 
 
-## Anillo del cercado: 3 tiles de margen a los lados y arriba, y el patio delantero abajo.
-func _fence_ring(b: Dictionary) -> Rect2i:
+## Anillo del cercado: margen de m tiles alrededor de la casa (3 minimo; el refugio usa hasta 8).
+func _fence_ring(b: Dictionary, m := 3) -> Rect2i:
 	var r: Rect2i = b["rect"]
-	return Rect2i(r.position.x - 3, r.position.y - 3, r.size.x + 6, r.size.y + 3 + 3)
+	return Rect2i(r.position.x - m, r.position.y - m, r.size.x + 2 * m, r.size.y + 2 * m)
 
 
-func _ring_clear(b: Dictionary) -> bool:
-	var ring := _fence_ring(b)
+func _ring_clear(b: Dictionary, m := 3) -> bool:
+	var ring := _fence_ring(b, m)
 	var blk: Rect2i = b["block"]
 	if not blk.encloses(ring):
 		return false
@@ -598,7 +608,12 @@ func _free_spot_in(b: Dictionary) -> Vector2:
 func _build_fence(b: Dictionary) -> void:
 	if not _ring_clear(b):
 		return
-	_build_fence_ring(b, _fence_ring(b), "refuge_sign")
+	var m := 3
+	for cand in [8, 7, 6, 5, 4]:   # cercado lo mas amplio posible (huerto futuro)
+		if _ring_clear(b, cand):
+			m = cand
+			break
+	_build_fence_ring(b, _fence_ring(b, m), "refuge_sign")
 	fence = fences[fences.size() - 1]
 
 
@@ -651,7 +666,16 @@ func _place_special_loot(refuge: Dictionary, hospital: Dictionary) -> void:
 		_loot_in(near[i], kinds_near[i])
 		_loot_in(near[i], "balas" if i == 1 else "bandage")
 	_loot_in(hospital, "pistola")
-	_loot_in(hospital, "tarjeta")
+	# la tarjeta Horizonte siempre aparece en una de las casas cercanas al refugio
+	var card_pool: Array = []
+	for nb in near:
+		if card_pool.size() >= 5:
+			break
+		if nb["kind"] in ["cabana", "casa", "chalet", "casita", "apartamentos", "tienda"]:
+			card_pool.append(nb)
+	if card_pool.is_empty():
+		card_pool = near.slice(0, 4)
+	_loot_in(card_pool[rng.randi() % card_pool.size()], "tarjeta")
 	_loot_in(hospital, "balas")
 	_loot_in(hospital, "balas")
 	_loot_in(hospital, "bandage")

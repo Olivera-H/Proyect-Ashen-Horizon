@@ -456,6 +456,8 @@ func _draw_view() -> void:
 	# objetivos
 	var edge_r := rr - 9.0
 	for g in goals:
+		if not Hud.goal_visible(g, player):
+			continue
 		var gp: Vector2 = g["pos"]
 		var main_goal: bool = g["main"]
 		var gcol := Color("f1c40f") if main_goal else Color("5dd6e8")

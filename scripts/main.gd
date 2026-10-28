@@ -105,6 +105,9 @@ func _find_rects() -> void:
 			main_rect = _rect_for(gp)
 		elif g["name"] == "Refugio":
 			refuge_rect = _rect_for(gp)
+			if not world.fence.is_empty():   # el refugio incluye todo el patio cercado
+				var ring: Rect2i = world.fence["ring"]
+				refuge_rect = Rect2(Vector2(ring.position) * float(World.TS), Vector2(ring.size) * float(World.TS))
 	world.safe_rect = refuge_rect
 
 
@@ -347,7 +350,7 @@ func _check_refuge(delta: float) -> void:
 		player.health = minf(player.max_health, player.health + REFUGE_HEAL * delta)
 		if not _in_refuge:
 			_in_refuge = true
-			checkpoint = refuge_rect.get_center()
+			checkpoint = world.start_pos
 			hud.toast("Refugio asegurado: progreso guardado y los infectados pierden tu rastro.", 4.5)
 	else:
 		_in_refuge = false
@@ -376,13 +379,14 @@ func _near_door(r: Rect2) -> bool:
 
 func _update_story(delta: float) -> void:
 	var inv := player.inventory
+	hud.hint = "Investiga la zona en busca de la tarjeta de acceso" if _story == 0 and not inv.owns("tarjeta") else ""
 	_door_hint_t -= delta
 	match _story:
 		0:
 			_radio_t -= delta
 			if _radio_t <= 0.0 and _radio_t > -100.0:
 				_radio_t = -1000.0
-				hud.toast("Radio, Lena: «Mateo, el hospital tiene una tarjeta Horizonte de nivel 3. Sin ella no entras al laboratorio, al este.»", 9.0)
+				hud.toast("Radio, Lena: «Mateo, una tarjeta Horizonte de nivel 3 quedó en alguna casa cerca del refugio. Sin ella no entras al laboratorio, al este.»", 9.0)
 			if inv.owns("tarjeta"):
 				_story = 1
 				hud.toast("Tienes la Tarjeta Horizonte. Sigue la carretera al este hasta el laboratorio.", 7.0)
