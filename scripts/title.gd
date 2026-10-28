@@ -3,6 +3,8 @@ extends Node2D
 ## (JUGAR / CONTROLES / CREDITOS). Al pulsar JUGAR carga la partida.
 
 const MAIN_SCENE := "res://scenes/main.tscn"
+const AUDIO_CONFIG := "user://audio_settings.cfg"
+const MASTER_BUS := 0
 
 var _font: Font
 var _t := 0.0
@@ -13,10 +15,12 @@ var _buttons: Array = []    # {rect, id, text}
 var _go_t := -1.0
 var _flash := 0.0
 var _skyline: Array = []
+var _master_volume := 0.8
 
 
 func _ready() -> void:
 	_font = UiFont.get_font()
+	_load_volume()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 77
 	for i in 160:
@@ -34,6 +38,41 @@ func _ready() -> void:
 	m._gap = 1.5
 	add_child(m)
 	get_viewport().size_changed.connect(queue_redraw)
+
+
+func _load_volume() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(AUDIO_CONFIG) == OK:
+		_master_volume = clampf(float(cfg.get_value("audio", "master", 0.8)), 0.0, 1.0)
+	_apply_volume()
+
+
+func _apply_volume() -> void:
+	AudioServer.set_bus_volume_db(MASTER_BUS, linear_to_db(maxf(_master_volume, 0.0001)))
+	AudioServer.set_bus_mute(MASTER_BUS, _master_volume <= 0.001)
+
+
+func _set_volume(value: float) -> void:
+	_master_volume = clampf(value, 0.0, 1.0)
+	_apply_volume()
+	var cfg := ConfigFile.new()
+	cfg.set_value("audio", "master", _master_volume)
+	cfg.save(AUDIO_CONFIG)
+	queue_redraw()
+
+
+func _volume_rect(vs: Vector2) -> Rect2:
+	return Rect2(vs.x * 0.5 - 112.0, vs.y * 0.65, 224.0, 18.0)
+
+
+func _adjust_volume(pos: Vector2) -> bool:
+	if _panel != "configuracion":
+		return false
+	var bar := _volume_rect(get_viewport_rect().size)
+	if not bar.grow(12.0).has_point(pos):
+		return false
+	_set_volume((pos.x - bar.position.x) / bar.size.x)
+	return true
 
 
 func _start_audio() -> void:
@@ -64,6 +103,15 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch and event.pressed:
 		pos = event.position
 		pressed = true
+	elif event is InputEventScreenDrag:
+		_adjust_volume(event.position)
+		return
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		pos = event.position
+		pressed = true
+	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		_adjust_volume(event.position)
+		return
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ENTER or event.keycode == KEY_SPACE:
 			_press("jugar")
@@ -71,6 +119,8 @@ func _input(event: InputEvent) -> void:
 			_press("volver")
 		return
 	if not pressed:
+		return
+	if _adjust_volume(pos):
 		return
 	for b in _buttons:
 		if (b["rect"] as Rect2).has_point(pos):
@@ -85,7 +135,7 @@ func _press(id: String) -> void:
 		"jugar":
 			Sfx.play("ui_start")
 			_go_t = 0.0
-		"controles", "creditos":
+		"controles", "creditos", "configuracion":
 			Sfx.play("ui_click")
 			_panel = id
 		"volver":
@@ -167,7 +217,7 @@ func _draw() -> void:
 		var bw := 150.0
 		var bh := 24.0
 		var by := vs.y * 0.58
-		var items := [["jugar", "JUGAR"], ["controles", "CONTROLES"], ["creditos", "CRÉDITOS"]]
+		var items := [["jugar", "JUGAR"], ["controles", "CONTROLES"], ["configuracion", "CONFIGURACIÓN"], ["creditos", "CRÉDITOS"]]
 		for i in items.size():
 			var r := Rect2(cx - bw * 0.5, by + i * (bh + 8.0), bw, bh)
 			_buttons.append({"rect": r, "id": items[i][0]})
@@ -181,7 +231,9 @@ func _draw() -> void:
 		draw_rect(pr, Color(0.03, 0.03, 0.04, 0.92))
 		draw_rect(pr, Color(0.75, 0.7, 0.62, 0.8), false, 1.0)
 		var lines: Array = []
-		if _panel == "controles":
+		if _panel == "configuracion":
+			lines = ["CONFIGURACIÓN DE AUDIO", "Ajusta el volumen general del juego."]
+		elif _panel == "controles":
 			lines = ["MÓVIL: joystick izquierdo para moverte; botones a la derecha para",
 				"atacar/disparar, esquivar, linterna, reparar y abrir la mochila.",
 				"Toca las casillas de la barra para usar objetos y armas.",
@@ -197,6 +249,13 @@ func _draw() -> void:
 		for l in lines:
 			_txt(l, Vector2(pr.position.x, yy), 10, Color(0.88, 0.86, 0.8), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
 			yy += 16.0
+		if _panel == "configuracion":
+			var bar := _volume_rect(vs)
+			_txt("VOLUMEN GENERAL: %d%%" % int(round(_master_volume * 100.0)), Vector2(pr.position.x, bar.position.y - 12.0), 12, Color(0.9, 0.9, 0.8), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+			draw_rect(bar, Color(0.13, 0.13, 0.16))
+			draw_rect(Rect2(bar.position, Vector2(bar.size.x * _master_volume, bar.size.y)), Color(0.58, 0.78, 0.37))
+			draw_rect(bar, Color(0.8, 0.8, 0.7), false, 1.0)
+			draw_rect(Rect2(bar.position.x + bar.size.x * _master_volume - 3.0, bar.position.y - 3.0, 6.0, bar.size.y + 6.0), Color(0.95, 0.9, 0.72))
 		_txt("toca para volver", Vector2(pr.position.x, pr.end.y - 8.0), 9, Color(0.7, 0.7, 0.7, 0.6 + 0.4 * sin(_t * 4.0)), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
 	_txt("v0.9 · Acto I–II", Vector2(0, vs.y - 6.0), 8, Color(0.6, 0.6, 0.6, 0.7), HORIZONTAL_ALIGNMENT_RIGHT, vs.x - 8.0)
 
