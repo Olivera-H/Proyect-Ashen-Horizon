@@ -49,6 +49,8 @@ func setup(w: World, floor_parent: Node2D, ents: Node2D) -> void:
 		roof.scale = Vector2(0.5, 0.5)
 		roof.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		roof.position = origin
+		if b == w.refuge_b:
+			roof.light_mask = 2     # el techo no se ilumina con las luces interiores del refugio
 		add_child(roof)
 		_roofs.append({"sprite": roof, "b": b})
 	_build_fence(ents)

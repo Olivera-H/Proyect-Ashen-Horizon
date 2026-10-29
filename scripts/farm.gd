@@ -35,7 +35,7 @@ func setup(w: World) -> void:
 	var house: Rect2i = w.refuge_b["rect"]
 	var ring: Rect2i = w.fence["ring"]
 	var x0 := house.end.x + 2
-	var y0 := house.position.y - 1
+	var y0 := house.position.y
 	var ts := float(World.TS)
 	var step := PLOT_TILES + GAP_TILES
 	for cx in COLS:

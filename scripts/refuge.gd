@@ -3,6 +3,7 @@ extends Node2D
 ## Mejoras del refugio, en el patio cercado junto a la casa:
 ## - Mesa de trabajo: fabrica vendajes, municion, combustible y semillas con chatarra.
 ## - Botiquin ampliable: guarda vendajes como cargas (3/6/10) que curan mas que un vendaje suelto.
+## - Cofre: guarda recursos (hasta CHEST_CAP unidades) para no cargarlos en la mochila.
 ## - Generador: gasta combustible; encendido da calor de noche, cura mas rapido y enciende las luces.
 ##   De noche, sin generador, el refugio esta frio: no cura casi y el hambre y la sed bajan mas rapido.
 ## La interfaz (panel) esta en station_menu.gd; aqui viven el estado, el dibujo y las reglas.
@@ -14,6 +15,12 @@ const NEAR_R := 30.0
 const MED_CAP := [3, 6, 10]
 const MED_HEAL := [40.0, 50.0, 60.0]
 const MED_COST := [0, 6, 10]   # chatarra para llegar a cada nivel
+const CHEST_CAP := 60
+const CHEST_ITEMS := ["bandage", "food", "water", "scrap", "semillas", "combustible", "balas", "cartuchos"]
+## Lamparas del interior (tiles desde la esquina de la casa); coinciden con "lamps" de tools/gen_buildings.py.
+const LAMPS := [Vector2(3.6, 5.4), Vector2(9.6, 5.4), Vector2(6.6, 8.7)]
+const LAMP_ON := 18.0          # hora a la que se encienden las luces
+const LAMP_OFF := 6.0
 const RECIPES := [
 	{"id": "bandage", "name": "Vendaje", "n": 1, "cost": 3},
 	{"id": "balas", "name": "Balas x6", "give": "balas", "n": 6, "cost": 5},
@@ -29,10 +36,14 @@ var gen_on := false
 var fuel := 0.0
 var med_level := 0
 var med_charges := 2
+var chest := {}                # id -> unidades guardadas
+var hour := 12.0               # hora del dia (0-24), la fija main
 var near := ""
 var _low_warned := false
 var _gen_light: PointLight2D
 var _door_light: PointLight2D
+var _lamp_lights: Array = []
+var _lamp_k := 0.0
 var _night := 1.0
 var _loop_on := false
 var _t := 0.0
@@ -45,14 +56,19 @@ func setup(w: World, ents: Node2D) -> void:
 	var house: Rect2i = w.refuge_b["rect"]
 	var ring: Rect2i = w.fence["ring"]
 	var door: Vector2i = w.refuge_b["door"]
-	var y := mini(house.end.y + 2, ring.end.y - 4)
 	var ts := float(World.TS)
-	_add("bench", Rect2(Vector2(door.x - 6, y) * ts, Vector2(2, 1) * ts), ents)
-	_add("medkit", Rect2(Vector2(door.x + 3, y) * ts, Vector2(1, 1) * ts), ents)
-	_add("generator", Rect2(Vector2(door.x + 6, y) * ts, Vector2(2, 2) * ts), ents)
+	var o := Vector2(house.position) * ts
+	# dentro de la casa (ver "reserve" en tools/gen_buildings.py): cofre, botiquin y mesa de trabajo
+	_add("chest", Rect2(o + Vector2(5.0, 3.55) * ts, Vector2(2, 1) * ts), ents)
+	_add("medkit", Rect2(o + Vector2(7.7, 3.2) * ts, Vector2(1, 1) * ts), ents)
+	_add("bench", Rect2(o + Vector2(9.0, 3.55) * ts, Vector2(2, 1) * ts), ents)
+	# el generador queda fuera, en el patio delantero, junto al caminito
+	_add("generator", Rect2(Vector2(door.x + 4, house.end.y) * ts, Vector2(2, 2) * ts), ents)
+	for lp in LAMPS:
+		_lamp_lights.append(_make_light(o + lp * ts, 2.0, Color("ffd9a0")))
 	var g: Rect2 = stations["generator"]["rect"]
 	_gen_light = _make_light(g.get_center() + Vector2(0, -6), 1.6, Color("ffd890"))
-	_door_light = _make_light(Vector2((door.x + 1) * ts, (house.end.y + 1) * ts), 2.6, Color("ffcf80"))
+	_door_light = _make_light(Vector2((door.x + 1) * ts, (house.end.y - 1.5) * ts), 2.6, Color("ffcf80"))
 	# colision de los tres puestos
 	var body := StaticBody2D.new()
 	body.collision_layer = 1
@@ -113,7 +129,14 @@ func _process(delta: float) -> void:
 	var e := (0.35 + 0.65 * _night) if gen_on else 0.0
 	e *= 0.94 + 0.06 * sin(_t * 23.0)
 	_gen_light.energy = e * 0.9
-	_door_light.energy = e * 0.7
+	# luces de la casa: encienden a las 18:00 y se apagan a las 6:00; con el generador brillan mas
+	var want_k := 1.0 if (hour >= LAMP_ON or hour < LAMP_OFF) else 0.0
+	_lamp_k = move_toward(_lamp_k, want_k, delta * 0.8)
+	var lamp_e := _lamp_k * (0.95 if gen_on else 0.6) * (0.97 + 0.03 * sin(_t * 9.0))
+	for l in _lamp_lights:
+		(l as PointLight2D).energy = lamp_e * (1.0 if gen_on else 0.9)
+		(l as PointLight2D).color = Color("ffe2b0") if gen_on else Color("ffc88a")
+	_door_light.energy = lamp_e * 0.8
 	if player == null:
 		player = get_tree().get_first_node_in_group("player")
 	near = ""
@@ -142,6 +165,8 @@ func station_title(k: String) -> String:
 			return "MESA DE TRABAJO"
 		"medkit":
 			return "BOTIQUÍN DEL REFUGIO"
+		"chest":
+			return "COFRE DEL REFUGIO"
 	return "GENERADOR"
 
 
@@ -211,6 +236,44 @@ func med_upgrade() -> void:
 	_say("Botiquín ampliado: nivel %d (%d cargas, cura %d)." % [med_level + 1, med_cap(), int(MED_HEAL[med_level])])
 
 
+func chest_total() -> int:
+	var n := 0
+	for k in chest:
+		n += int(chest[k])
+	return n
+
+
+## Guarda unidades de la mochila en el cofre (n = 0 -> todas las que quepan).
+func chest_put(id: String, n: int) -> void:
+	var have: int = player.inventory.count(id)
+	var amount := mini(have if n <= 0 else n, CHEST_CAP - chest_total())
+	if have <= 0:
+		return
+	if amount <= 0:
+		_say("El cofre está lleno.")
+		return
+	player.inventory.remove(id, amount)
+	chest[id] = int(chest.get(id, 0)) + amount
+	Sfx.play("equip", -4.0)
+
+
+## Saca unidades del cofre a la mochila (n = 0 -> todas las que quepan).
+func chest_take(id: String, n: int) -> void:
+	var have: int = int(chest.get(id, 0))
+	if have <= 0:
+		return
+	var want := have if n <= 0 else mini(n, have)
+	var left: int = player.inventory.add(id, want)
+	var got := want - left
+	if got <= 0:
+		_say("Mochila llena: libera espacio.")
+		return
+	chest[id] = have - got
+	if int(chest[id]) <= 0:
+		chest.erase(id)
+	Sfx.play("pickup", -4.0)
+
+
 func gen_toggle() -> void:
 	if gen_on:
 		gen_on = false
@@ -253,8 +316,27 @@ class Prop extends Node2D:
 				_bench()
 			"medkit":
 				_medkit()
+			"chest":
+				_chest()
 			_:
 				_generator()
+
+	func _chest() -> void:
+		var w := size.x
+		var full: float = clampf(float(refuge.chest_total()) / float(Refuge.CHEST_CAP), 0.0, 1.0)
+		draw_rect(Rect2(-w * 0.5 + 1, -3, 3, 3), Color("2a1f14"))
+		draw_rect(Rect2(w * 0.5 - 4, -3, 3, 3), Color("2a1f14"))
+		draw_rect(Rect2(-w * 0.5, -13, w, 11), Color("7a5430"))
+		draw_rect(Rect2(-w * 0.5, -17, w, 5), Color("96693a"))                       # tapa
+		draw_rect(Rect2(-w * 0.5, -17, w, 1), Color("c2935a"))
+		for i in 4:                                                                  # tablas
+			draw_rect(Rect2(-w * 0.5 + 7 + i * 7, -12, 1, 9), Color("5e4024"))
+		draw_rect(Rect2(-w * 0.5 + 2, -17, 3, 15), Color("4a4e56"))                  # herrajes
+		draw_rect(Rect2(w * 0.5 - 5, -17, 3, 15), Color("4a4e56"))
+		draw_rect(Rect2(-2, -13, 4, 5), Color("d8b040"))                             # cerradura
+		draw_rect(Rect2(-1, -11, 2, 2), Color("3a2a10"))
+		draw_rect(Rect2(-w * 0.5, -17, w, 15), Color("2a1f14"), false, 1.0)
+		draw_rect(Rect2(-w * 0.5 + 8, -2, (w - 16) * full, 1), Color("7dff8a") if full < 0.9 else Color("e8a030"))   # nivel de llenado
 
 	func _bench() -> void:
 		var w := size.x

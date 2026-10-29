@@ -33,6 +33,20 @@ def C(h, a=255):
 # ------------------------------------------------------------------ especificaciones
 # furn: (clave, x, y, ancho, alto) en tiles.  walls: tabiques (x, y, ancho, alto).
 SPECS = {
+    "refugio": dict(
+        texture="plank", decor=None, shutters="#6b4a2a", curtains="#e8d8b0", planks=True,
+        rug=(3.6, 6.1, 9.6, 8.9), rugc="#7a3b2f", refugio=True, chimney_px=187,
+        tw=14, th=16, door_x=6, floors=[(1, 3, 12, 10)], sign="REFUGIO",
+        pal=dict(wall="#dccaa4", wall_d="#8a7650", floor_a="#b88f62", floor_b="#ad8458", joint="#8a6a46",
+                 accent="#3d7a52", roof="#5d6f62", roof_d="#3d4c42", sign_bg="#2f5a3a", sign_fg="#eaf5dc"),
+        windows=[(1, 4), (9, 12)], awning=None,
+        walls=[],
+        lamps=[(3.6, 5.4), (9.6, 5.4), (6.6, 8.7)],
+        reserve=[(5.0, 3.55, 2.0, 1.0), (7.7, 3.2, 1.0, 1.0), (9.0, 3.55, 2.0, 1.0)],
+        furn=[("bed", 1.2, 3.1, 2.4, 1.7), ("nightstand", 3.8, 3.2, 0.9, 0.9), ("stove", 11.2, 3.1, 1.6, 1.3),
+              ("sofa", 1.0, 6.3, 2.4, 1.1), ("table", 5.3, 6.5, 3.0, 1.3), ("kitchen", 10.0, 6.2, 2.8, 0.9),
+              ("crate", 11.6, 8.8, 1.1, 1.0), ("crate", 10.4, 9.0, 1.0, 0.9), ("plant", 1.3, 9.0, 0.7, 0.7)],
+        roof_kind="pitched_refugio"),
     "supermercado": dict(
         texture="stucco", decor="clock",
         tw=25, th=14, door_x=11, floors=[(1, 3, 23, 8)], sign="SUPER",
@@ -275,6 +289,22 @@ def draw_furn(d, kind, x, y, w, h, rnd, p):
     elif kind == "sofa":
         box3d(d, x, y, w, h, p["accent"], shade(p["accent"], -45), 0.5)
         R(d, X0, Y0, X1, Y0 + 5, shade(p["accent"], -20)); d.rectangle([X0, Y0, X1, Y1], outline=OL)
+    elif kind == "nightstand":
+        box3d(d, x, y, w, h, C("#a87c4c"), C("#6a4c2c"), 0.5)
+        R(d, X0 + 5, Y0 - 3, X0 + 8, Y0 + 1, C("#f2dc9a")); R(d, X0 + 6, Y0 + 1, X0 + 7, Y0 + 3, C("#3a3d44"))
+    elif kind == "stove":
+        R(d, X0, Y0 - 2, X1, Y1, C("#2e3036")); d.rectangle([X0, Y0 - 2, X1, Y1], outline=OL)
+        R(d, X0 + 1, Y0 - 1, X1 - 1, Y0 + 1, C("#5a5e66"))
+        R(d, X0 + 4, Y0 + 5, X1 - 4, Y1 - 4, C("#1a1a1e")); R(d, X0 + 6, Y0 + 8, X1 - 6, Y1 - 5, C("#ff9a2e")); R(d, X0 + 8, Y0 + 11, X1 - 8, Y1 - 6, C("#ffd35a"))
+        R(d, X0 + 2, Y1 - 2, X1 - 2, Y1, C("#4a4e56"))
+        R(d, X1 - 7, Y0 - 12, X1 - 4, Y0 - 2, C("#4a4a50")); R(d, X1 - 7, Y0 - 12, X1 - 6, Y0 - 2, C("#7a7e86"))
+        R(d, X0 - 7, Y1 - 6, X0 - 2, Y1, C("#7a5a36")); R(d, X0 - 7, Y1 - 6, X0 - 2, Y1 - 5, C("#9a7a4c"))   # lena
+    elif kind == "kitchen":
+        box3d(d, x, y, w, h, C("#d8cfb8"), C("#6a5a46"), 0.5)
+        R(d, X0 + 4, Y0 + 2, X0 + 15, Y0 + 8, C("#8a9aa4")); R(d, X0 + 5, Y0 + 3, X0 + 14, Y0 + 7, C("#5a6a74"))   # fregadero
+        R(d, X0 + 9, Y0 - 1, X0 + 10, Y0 + 2, C("#aab2ba"))
+        R(d, X1 - 16, Y0 + 3, X1 - 6, Y0 + 7, C("#3a3d44")); R(d, X1 - 13, Y0 + 2, X1 - 9, Y0 + 3, C("#c8c8c0"))     # olla
+        R(d, X0 + 20, Y0 + 3, X0 + 24, Y0 + 7, C("#3f78c8"))
     elif kind == "plant":
         R(d, X0 + 1, Y0 + 5, X1 - 1, Y1, C("#8a5a3c"))
         R(d, X0, Y0, X1, Y0 + 5, C("#5a7a3c")); R(d, X0 + 2, Y0 - 2, X1 - 2, Y0 + 2, C("#7a9a4c"))
@@ -392,6 +422,34 @@ def facade(d, rnd, spec, p, roof=False):
     vines(d, rnd, [(6, Y0 + 6, 24), (W - 10, Y0 + 4, 22)])
 
 
+
+def refugio_decor(d, p, rnd):
+    """Pared del fondo del refugio: estante con frascos sobre el cofre, tablero de herramientas
+    sobre la mesa de trabajo, ventanita y cartel."""
+    # estante sobre el cofre (x 5-7)
+    R(d, T(5.0), T(1.55), T(7.0) - 1, T(1.55) + 2, C("#6a4a2c")); R(d, T(5.0), T(1.55) + 3, T(7.0) - 1, T(1.55) + 3, C("#3a2a18"))
+    for k, col in enumerate(("#c85a3a", "#e8c230", "#5aa86a", "#7fa6c0", "#c8b078")):
+        jx = T(5.0) + 3 + k * 5
+        R(d, jx, T(1.55) - 7, jx + 3, T(1.55) - 1, C(col)); R(d, jx, T(1.55) - 8, jx + 3, T(1.55) - 8, C("#e8e0cc"))
+    R(d, T(5.0), T(2.3), T(7.0) - 1, T(2.3) + 2, C("#6a4a2c"))
+    for k in range(3):
+        R(d, T(5.0) + 4 + k * 8, T(2.3) - 5, T(5.0) + 9 + k * 8, T(2.3) - 1, C("#8a6a3e"))
+    # tablero de herramientas sobre la mesa (x 9-11)
+    R(d, T(9.0), T(1.1), T(11.0) - 1, T(2.8), C("#8a6a46")); d.rectangle([T(9.0), T(1.1), T(11.0) - 1, T(2.8)], outline=OL)
+    for hx in range(T(9.0) + 3, T(11.0) - 3, 4):
+        R(d, hx, T(1.1) + 3, hx, T(1.1) + 4, C("#2a2118"))
+    R(d, T(9.0) + 4, T(1.1) + 5, T(9.0) + 5, T(1.1) + 13, C("#aab2ba")); R(d, T(9.0) + 2, T(1.1) + 5, T(9.0) + 7, T(1.1) + 6, C("#aab2ba"))   # llave
+    R(d, T(9.0) + 12, T(1.1) + 6, T(9.0) + 13, T(1.1) + 15, C("#6a3a22")); R(d, T(9.0) + 10, T(1.1) + 5, T(9.0) + 15, T(1.1) + 7, C("#8a8d93"))  # martillo
+    R(d, T(9.0) + 20, T(1.1) + 5, T(9.0) + 27, T(1.1) + 6, C("#d8362b")); R(d, T(9.0) + 20, T(1.1) + 5, T(9.0) + 21, T(1.1) + 14, C("#d8362b"))   # alicate
+    # cuadro de familia y mapa
+    R(d, T(1.4), T(1.2), T(2.7), T(2.2), C("#6a4a2c")); R(d, T(1.4) + 2, T(1.2) + 2, T(2.7) - 2, T(2.2) - 2, C("#c8b078"))
+    R(d, T(12.0) - 3, T(1.2), T(12.6) + 5, T(2.3), C("#e8dcc0")); d.rectangle([T(12.0) - 3, T(1.2), T(12.6) + 5, T(2.3)], outline=C("#6a4a2c"))
+    d.line([(T(12.0), T(1.5)), (T(12.4), T(2.0)), (T(12.6), T(1.6))], fill=C("#c0392b"))
+    # cruz verde sobre el botiquin
+    mx = T(8.2)
+    R(d, mx - 1, T(1.5), mx + 1, T(2.4), C("#3d7a52")); R(d, mx - 5, T(1.8), mx + 5, T(2.0), C("#3d7a52"))
+
+
 def interior_image(spec, rnd):
     tw, th = spec["tw"], spec["th"]
     p = pal_of(spec)
@@ -399,7 +457,10 @@ def interior_image(spec, rnd):
     for rect in spec["floors"]:
         (plank_floor if spec.get("planks") else floor_pattern)(d, rect, p)
     back_wall(d, 1, tw - 1, p)
-    wall_decor(d, spec, p, rnd)
+    if spec.get("refugio"):
+        refugio_decor(d, p, rnd)
+    elif spec.get("decor"):
+        wall_decor(d, spec, p, rnd)
     if spec.get("rug"):
         rx0, ry0, rx1, ry1 = [int(v * TS) for v in spec["rug"]]
         R(d, rx0, ry0, rx1, ry1, C(spec["rugc"])); d.rectangle([rx0, ry0, rx1, ry1], outline=shade(C(spec["rugc"]), -50))
@@ -420,10 +481,16 @@ def interior_image(spec, rnd):
     for (kind, x, y, w, h) in sorted(spec["furn"], key=lambda f: f[2] + f[4]):
         draw_furn(d, kind, x, y, w, h, rnd, p)
     x0, y0, x1, y1 = spec["floors"][0]
-    stains(d, rnd, [(x0 + 1, y0 + 2, x1, y1)], 6)
-    for _ in range(16):
+    if not spec.get("refugio"):
+        stains(d, rnd, [(x0 + 1, y0 + 2, x1, y1)], 6)
+    for _ in range(0 if spec.get("refugio") else 16):
         px, py = rnd.randint(T(x0 + 1), T(x1)), rnd.randint(T(y0 + 1), T(y1))
         R(d, px, py, px + rnd.randint(2, 5), py + rnd.randint(1, 3), C("#ece8dc"))
+    for (lx, ly) in spec.get("lamps", []):
+        cx, cy = T(lx), T(ly)
+        R(d, cx - 1, cy - 8, cx, cy - 3, C("#3a3d44"))
+        d.ellipse([cx - 5, cy - 3, cx + 5, cy + 3], fill=C("#f2dc9a"), outline=C("#5a4a2a"))
+        d.ellipse([cx - 2, cy - 2, cx + 2, cy + 1], fill=C("#fff6cc"))
     facade(d, rnd, spec, p)
     fh = body_h(spec) * TS
     R(d, 0, 0, tw * TS - 1, 3, p["wall_d"]); R(d, 0, 0, 3, fh, p["wall_d"]); R(d, tw * TS - 4, 0, tw * TS - 1, fh, p["wall_d"])
@@ -459,7 +526,7 @@ def roof_image(spec, rnd):
         R(d, 0, ridge - 2, W - 1, ridge + 1, shade(p["roof"], 44))
         R(d, 0, ridge + 2, W - 1, ridge + 2, shade(p["roof_d"], -20))
         R(d, 0, fh - 6, W - 1, fh - 1, p["roof_d"])
-        cx0 = W // 5
+        cx0 = spec.get("chimney_px", W // 5)
         R(d, cx0, ridge - 18, cx0 + 11, ridge - 1, C("#8a5a46")); d.rectangle([cx0, ridge - 18, cx0 + 11, ridge - 1], outline=OL)
         R(d, cx0 - 1, ridge - 20, cx0 + 12, ridge - 18, C("#4a4a4e"))
     elif kind == "church":
@@ -510,6 +577,23 @@ def roof_image(spec, rnd):
             R(d, T(ax), T(ay), T(ax) + 33, T(ay) + 29, C("#a0a4a8")); d.rectangle([T(ax), T(ay), T(ax) + 33, T(ay) + 29], outline=OL)
             cx, cy = T(ax) + 16, T(ay) + 10
             d.ellipse([cx - 9, cy - 8, cx + 9, cy + 8], fill=C("#464c54"), outline=OL)
+    if kind == "pitched_refugio":
+        ridge = fh // 2
+        for (px0, py0) in ((T(1.2), T(0.9)), (T(3.6), T(0.9))):     # paneles solares
+            R(d, px0, py0, px0 + 36, py0 + 40, C("#1f3350")); d.rectangle([px0, py0, px0 + 36, py0 + 40], outline=C("#aab2ba"))
+            for gx in range(px0 + 9, px0 + 36, 9):
+                d.line([(gx, py0), (gx, py0 + 40)], fill=C("#3f6a9a"))
+            for gy in range(py0 + 10, py0 + 40, 10):
+                d.line([(px0, gy), (px0 + 36, gy)], fill=C("#3f6a9a"))
+            R(d, px0 + 2, py0 + 2, px0 + 8, py0 + 4, C("#8fb4dc"))
+        R(d, T(8.2), T(6.3), T(11.6), T(9.2), C("#3e6f86")); d.rectangle([T(8.2), T(6.3), T(11.6), T(9.2)], outline=OL)    # lona
+        for k in range(4):
+            d.line([(T(8.2) + 4 + k * 12, T(6.3)), (T(8.2) + 12 + k * 12, T(9.2))], fill=C("#2f566a"))
+        for qx in (T(8.2) + 2, T(11.6) - 3):
+            R(d, qx, T(6.3) + 2, qx + 1, T(6.3) + 3, C("#c8c8c0")); R(d, qx, T(9.2) - 3, qx + 1, T(9.2) - 2, C("#c8c8c0"))
+        R(d, T(12.5), ridge - 30, T(12.5) + 1, ridge, C("#4a4a50")); R(d, T(12.5) - 4, ridge - 26, T(12.5) + 5, ridge - 25, C("#4a4a50"))   # antena
+        R(d, T(12.5) - 2, ridge - 31, T(12.5) + 3, ridge - 30, C("#d8362b"))
+        R(d, T(5.2), ridge - 9, T(5.2) + 5, ridge - 1, C("#6a7078")); R(d, T(5.2) - 1, ridge - 11, T(5.2) + 6, ridge - 9, C("#9aa0aa"))    # ventilacion
     if spec["sign"] == "HOSPITAL":
         cx, cy = W // 2, fh // 2 + 4
         R(d, cx - 14, cy - 14, cx + 14, cy + 14, C("#f2f2f0")); d.rectangle([cx - 14, cy - 14, cx + 14, cy + 14], outline=OL)
@@ -517,7 +601,8 @@ def roof_image(spec, rnd):
     if kind == "pitched_blue" and spec["sign"] == "POLICIA":
         R(d, W // 2 - 12, fh // 2 - 10, W // 2 + 12, fh // 2 + 10, C("#1f3a78")); d.rectangle([W // 2 - 12, fh // 2 - 10, W // 2 + 12, fh // 2 + 10], outline=OL)
         gp.text(im, W // 2 - 3, fh // 2 - 3, "P", C("#eaf0ff"))
-    stains(d, rnd, [(2, 2, spec["tw"] - 2, body_h(spec) - 1)], 4)
+    if not spec.get("refugio"):
+        stains(d, rnd, [(2, 2, spec["tw"] - 2, body_h(spec) - 1)], 4)
     for _ in range(14):
         sx, sy = rnd.randint(8, W - 12), rnd.randint(8, fh - 8)
         R(d, sx, sy, sx + rnd.randint(3, 9), sy + rnd.randint(1, 3), shade(p["roof"], -30))
@@ -625,6 +710,9 @@ def tile_rows(spec, roof, inte):
                 if x0 <= x <= x1 and y0 <= y <= y1:
                     c = "f"
                     for (_k, bx, by, bw, bh) in spec["furn"]:
+                        if bx <= x + 0.5 <= bx + bw and by <= y + 0.5 <= by + bh:
+                            c = "o"
+                    for (bx, by, bw, bh) in spec.get("reserve", []):
                         if bx <= x + 0.5 <= bx + bw and by <= y + 0.5 <= by + bh:
                             c = "o"
             if spec["door_x"] <= x <= spec["door_x"] + 1 and fb < y < th and y < fy + 3 + 2:

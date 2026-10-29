@@ -212,3 +212,7 @@ En el patio cercado, al sur de la casa (`scripts/refuge.gd`, panel en `scripts/s
 
 ### Farol del huerto
 Un poste con luz cálida ilumina las parcelas de noche; cada 7–14 s la luz parpadea unos instantes (`scripts/farm.gd`).
+
+### Casa del refugio (diseño propio)
+La casa del refugio (`refugio`, 14x16 tiles) se dibuja por código en `tools/gen_buildings.py` (cabaña de madera con paneles solares, lona, antena y chimenea). Dentro: cama, estufa, cocina, sofá, mesa, **mesa de trabajo, botiquín y cofre** (los puestos van dentro de la casa). El **cofre** guarda hasta 60 unidades de recursos (vendajes, comida, agua, chatarra, semillas, combustible y munición). El **generador** queda en el patio delantero.
+Luces interiores: se encienden de **18:00 a 6:00**; con el generador encendido brillan más y más claras. El techo no se ilumina desde dentro (`light_mask`). Regenerar el arte: `python3 tools/gen_houses.py`.

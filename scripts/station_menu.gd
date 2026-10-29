@@ -10,6 +10,7 @@ var station := ""
 var _font: Font
 var _t := 0.0
 var _buttons: Array = []     # {rect, id}
+var _bulk := false           # cofre: mover 1 unidad o todas
 var _last_press_ms := -1000
 var _last_press_pos := Vector2(-100, -100)
 
@@ -33,7 +34,8 @@ func _use_rect() -> Rect2:
 
 func _panel_rect() -> Rect2:
 	var vs := get_viewport_rect().size
-	return Rect2(vs.x * 0.5 - 180.0, vs.y * 0.5 - 135.0, 360.0, 270.0)
+	var h := 312.0 if station == "chest" else 270.0
+	return Rect2(vs.x * 0.5 - 180.0, vs.y * 0.5 - h * 0.5, 360.0, h)
 
 
 func set_open(v: bool, st := "") -> void:
@@ -102,7 +104,16 @@ func _press(id: String) -> void:
 	if id.begins_with("craft"):
 		refuge.craft(int(id.substr(5)))
 		return
+	if id.begins_with("cput:"):
+		refuge.chest_put(id.substr(5), 0 if _bulk else 1)
+		return
+	if id.begins_with("ctake:"):
+		refuge.chest_take(id.substr(6), 0 if _bulk else 1)
+		return
 	match id:
+		"cbulk":
+			_bulk = not _bulk
+			Sfx.play("ui_click")
 		"med_use":
 			refuge.med_use()
 		"med_store":
@@ -144,6 +155,9 @@ func _draw() -> void:
 	var info: Array = []
 	var inv := refuge.player.inventory
 	match station:
+		"chest":
+			_draw_chest(pr)
+			return
 		"bench":
 			info = ["Chatarra: %d" % refuge.scrap(), "Fabrica con la chatarra que encuentres."]
 			for i in Refuge.RECIPES.size():
@@ -185,6 +199,44 @@ func _draw() -> void:
 		draw_rect(rect, Color(0.75, 0.7, 0.62, 0.85 if on else 0.35), false, 1.0)
 		_txt(rw[1], Vector2(rect.position.x, rect.position.y + 16.0), 10, Color(0.95, 0.92, 0.85) if on else Color(0.5, 0.5, 0.5), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x)
 		y += 28.0
+	var cr := Rect2(pr.position.x + 30.0, pr.end.y - 32.0, pr.size.x - 60.0, 22.0)
+	_buttons.append({"rect": cr, "id": "cerrar"})
+	draw_rect(cr, Color(0.25, 0.07, 0.06, 0.95))
+	draw_rect(cr, Color(0.75, 0.7, 0.62, 0.8), false, 1.0)
+	_txt("CERRAR", Vector2(cr.position.x, cr.position.y + 15.0), 11, Color(0.95, 0.92, 0.85), HORIZONTAL_ALIGNMENT_CENTER, cr.size.x)
+
+
+## Panel del cofre: dos columnas (mochila / cofre); tocar una fila mueve 1 unidad (o todas).
+func _draw_chest(pr: Rect2) -> void:
+	var inv := refuge.player.inventory
+	var total := refuge.chest_total()
+	_txt("Cofre: %d / %d   ·   toca un objeto para moverlo" % [total, Refuge.CHEST_CAP], Vector2(pr.position.x, pr.position.y + 54.0), 9, Color(0.85, 0.88, 0.78), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+	var colw := (pr.size.x - 48.0) * 0.5
+	var lx := pr.position.x + 16.0
+	var rx := lx + colw + 16.0
+	_txt("MOCHILA  →", Vector2(lx, pr.position.y + 76.0), 10, Color(0.6, 0.8, 0.55), HORIZONTAL_ALIGNMENT_CENTER, colw)
+	_txt("←  COFRE", Vector2(rx, pr.position.y + 76.0), 10, Color(0.9, 0.75, 0.45), HORIZONTAL_ALIGNMENT_CENTER, colw)
+	var y := pr.position.y + 84.0
+	for id in Refuge.CHEST_ITEMS:
+		var nm: String = ItemDefs.item_name(id)
+		var nb: int = inv.count(id)
+		var nc: int = int(refuge.chest.get(id, 0))
+		for side in 2:
+			var r := Rect2(lx if side == 0 else rx, y, colw, 18.0)
+			var n: int = nb if side == 0 else nc
+			var on := n > 0 and (side == 1 or total < Refuge.CHEST_CAP)
+			_buttons.append({"rect": r, "id": ("cput:" if side == 0 else "ctake:") + id})
+			draw_rect(r, Color(0.12, 0.22, 0.1, 0.95) if on else Color(0.09, 0.09, 0.1, 0.95))
+			draw_rect(r, Color(0.75, 0.7, 0.62, 0.85 if on else 0.3), false, 1.0)
+			var col := Color(0.95, 0.92, 0.85) if on else Color(0.5, 0.5, 0.5)
+			_txt(nm, Vector2(r.position.x + 5.0, r.position.y + 13.0), 9, col)
+			_txt("x%d" % n, Vector2(r.position.x, r.position.y + 13.0), 9, col, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 5.0)
+		y += 20.0
+	var br := Rect2(pr.position.x + 30.0, y + 4.0, pr.size.x - 60.0, 20.0)
+	_buttons.append({"rect": br, "id": "cbulk"})
+	draw_rect(br, Color(0.1, 0.1, 0.13, 0.95))
+	draw_rect(br, Color(0.75, 0.7, 0.62, 0.8), false, 1.0)
+	_txt("MOVER: " + ("TODO EL MONTÓN" if _bulk else "DE A 1 UNIDAD"), Vector2(br.position.x, br.position.y + 14.0), 10, Color(0.95, 0.92, 0.85), HORIZONTAL_ALIGNMENT_CENTER, br.size.x)
 	var cr := Rect2(pr.position.x + 30.0, pr.end.y - 32.0, pr.size.x - 60.0, 22.0)
 	_buttons.append({"rect": cr, "id": "cerrar"})
 	draw_rect(cr, Color(0.25, 0.07, 0.06, 0.95))
