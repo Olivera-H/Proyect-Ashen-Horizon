@@ -32,6 +32,7 @@ var ents: Node2D
 
 var time_of_day := 0.36             # 0 = medianoche, 0.5 = mediodia
 var checkpoint := Vector2.ZERO
+var farm: Farm
 var refuge_rect := Rect2()
 var main_rect := Rect2()
 
@@ -64,6 +65,9 @@ func _ready() -> void:
 
 	var houses_floor := Node2D.new()
 	add_child(houses_floor)
+	farm = Farm.new()                   # huerto del refugio (bajo las entidades)
+	houses_floor.add_child(farm)
+	farm.setup(world)
 	pickup_root = Node2D.new()          # el botin se dibuja sobre el interior de las casas
 	add_child(pickup_root)
 	ents = Node2D.new()

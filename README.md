@@ -195,3 +195,9 @@ Engranaje arriba a la derecha (junto al mapa) o tecla Esc: pausa el juego y perm
 - El refugio ocupa un bloque propio (chalet + patio cercado de 25×21 tiles, sin árboles ni obstáculos dentro, listo para un futuro huerto).
 - La tarjeta Horizonte aparece siempre en una de las casas cercanas al refugio. Al inicio sale el mensaje fijo «Investiga la zona en busca de la tarjeta de acceso».
 - La lista y el minimapa muestran solo el refugio; el laboratorio aparece al tener la tarjeta. Hospital y base militar ya no muestran distancia (la base y el búnker solo salen cuando son el objetivo principal).
+
+## Huerto del refugio y casas más exploradas
+
+- **Huerto** (`scripts/farm.gd`): 8 parcelas junto a la casa del refugio. Camina sobre una parcela vacía con **semillas** en la mochila para plantar; brota y madura sola (~90 s) y al pisarla madura cosechas 2 de comida (y a veces una semilla). Las semillas están en el refugio y en tiendas, supermercados y casas. Sonidos nuevos: `plant` y `harvest` (regenerables con `python3 tools/gen_sfx.py --only plant,harvest` sin pisar archivos reemplazados a mano).
+- **Hitbox de casas**: chalet, casa y cabaña tenían habitaciones dibujadas que eran muros sólidos; ahora se pueden recorrer todas (puertas entre habitaciones y muebles nuevos). Ajustado en `LAYOUT` de `tools/gen_houses.py`.
+- **Menú de pausa**: barras de volumen centradas y con la perilla dentro de la barra.

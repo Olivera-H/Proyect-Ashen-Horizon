@@ -14,6 +14,7 @@ static var _cache := {}
 const AUDIO_CONFIG := "user://audio_settings.cfg"
 static var sfx_level := 1.0
 static var music_level := 1.0
+static var master_level := 0.8
 
 var _pool: Array[AudioStreamPlayer] = []
 var _pool2d: Array[AudioStreamPlayer2D] = []
@@ -25,6 +26,7 @@ static func setup_audio() -> void:
 	cfg.load(AUDIO_CONFIG)
 	sfx_level = clampf(float(cfg.get_value("audio", "sfx", 1.0)), 0.0, 1.0)
 	music_level = clampf(float(cfg.get_value("audio", "music", 1.0)), 0.0, 1.0)
+	master_level = clampf(float(cfg.get_value("audio", "master", 0.8)), 0.0, 1.0)
 
 
 ## Aplica y guarda un volumen: kind = "master" | "music" | "sfx" (0..1).
@@ -32,6 +34,7 @@ static func set_volume(kind: String, value: float) -> void:
 	var v := clampf(value, 0.0, 1.0)
 	match kind:
 		"master":
+			master_level = v
 			AudioServer.set_bus_volume_db(0, linear_to_db(maxf(v, 0.0001)))
 			AudioServer.set_bus_mute(0, v <= 0.001)
 		"music":
@@ -50,9 +53,7 @@ static func get_volume(kind: String) -> float:
 			return music_level
 		"sfx":
 			return sfx_level
-	var cfg := ConfigFile.new()
-	cfg.load(AUDIO_CONFIG)
-	return clampf(float(cfg.get_value("audio", "master", 0.8)), 0.0, 1.0)
+	return master_level
 
 
 static func set_bus_level(name: String, value: float) -> void:

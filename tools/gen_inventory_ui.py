@@ -62,6 +62,15 @@ def food():
     return outline(im)
 
 
+def semillas():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    R(d, 3, 4, 12, 14, hx("#d8c69a")); R(d, 3, 4, 12, 5, hx("#f0e4c0")); R(d, 12, 5, 12, 14, hx("#a89868"))
+    R(d, 4, 7, 11, 11, hx("#8aa850")); R(d, 4, 7, 11, 7, hx("#b4d070"))
+    P(im, [(7, 9), (8, 9), (6, 10), (9, 10)], hx("#c0392b"))
+    R(d, 7, 1, 8, 3, hx("#4f9a3a")); R(d, 5, 2, 6, 3, hx("#6bbd4c")); R(d, 9, 2, 10, 3, hx("#6bbd4c"))
+    return outline(im)
+
+
 def water():
     im = new(16, 16); d = ImageDraw.Draw(im)
     R(d, 6, 1, 9, 2, hx("#9aa0a8")); R(d, 5, 3, 10, 4, hx("#4aa3df"))
@@ -262,7 +271,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     sp = {"item_bandage": bandage(), "item_food": food(), "item_water": water(), "item_scrap": scrap(),
           "item_tubo": tubo(), "item_hacha": hacha(), "item_machete": machete(), "item_pistola": pistola(),
-          "item_escopeta": escopeta(), "item_fusil": fusil(), "item_mascara": mascara(), "item_llave": llave(), "item_suero": suero(), "item_balas": balas(), "item_cartuchos": cartuchos(), "item_tarjeta": tarjeta(),
+          "item_escopeta": escopeta(), "item_fusil": fusil(), "item_mascara": mascara(), "item_llave": llave(), "item_suero": suero(), "item_balas": balas(), "item_cartuchos": cartuchos(), "item_tarjeta": tarjeta(), "item_semillas": semillas(),
           "slot": slot("item"), "slot_sel": slot("sel"), "slot_skill": slot("skill"), "bag": backpack()}
     for s in ("golpe", "resistencia", "pies", "manos", "estomago", "sigilo"):
         sp["skill_" + s] = skill(s)

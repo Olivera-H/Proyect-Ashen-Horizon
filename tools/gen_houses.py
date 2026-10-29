@@ -19,7 +19,9 @@ HOUSES = {            # id: (tiles de ancho, tiles de alto)
 # Zonas caminables de cada interior, medidas sobre el arte (en tiles, x0, y0, x1, y1 incluidos),
 # y la columna de la puerta (2 tiles de ancho) por la que se baja hasta el porche.
 LAYOUT = {
-    "cabana": {"floor": [(1, 4, 12, 5)], "door_x": 8, "boxes": [
+    "cabana": {"floor": [(1, 4, 12, 5), (13, 4, 17, 5)], "door_x": 8, "boxes": [
+        (15.0, 3.7, 2.0, 1.3),   # estufa de la habitacion derecha
+        (14.2, 5.7, 2.6, 0.3),   # banca derecha
         (6.3, 4.0, 0.4, 1.3),    # tabique 1
         (11.6, 4.0, 0.4, 1.3),   # tabique 2
         (9.0, 4.0, 2.6, 1.0),    # cama
@@ -27,7 +29,13 @@ LAYOUT = {
         (4.2, 5.7, 2.7, 0.3),    # mesa izquierda
         (11.0, 5.75, 2.5, 0.25),  # mesa derecha
     ]},
-    "casa": {"floor": [(8, 3, 14, 6)], "door_x": 9, "boxes": [
+    "casa": {"floor": [(8, 3, 14, 6), (1, 3, 6, 6), (7, 5, 7, 6), (15, 5, 15, 6), (16, 3, 18, 6)], "door_x": 9, "boxes": [
+        (3.3, 3.0, 1.9, 0.8),    # chimenea
+        (2.0, 3.9, 1.2, 1.3),    # sillon izquierdo
+        (5.4, 3.9, 1.2, 1.3),    # sillon derecho
+        (2.2, 6.1, 2.2, 0.8),    # sofa
+        (16.7, 3.2, 2.2, 1.9),   # cama
+        (16.0, 3.0, 0.9, 1.0),   # comoda
         (8.0, 3.0, 3.3, 0.7),    # biblioteca
         (8.8, 4.15, 2.1, 1.2),   # escritorio
         (7.9, 5.0, 1.2, 1.2),    # sillon
@@ -36,7 +44,9 @@ LAYOUT = {
         (13.2, 4.1, 2.1, 1.7),   # mesa de la cocina
         (14.8, 3.0, 0.6, 0.5),   # planta
     ]},
-    "chalet": {"floor": [(1, 3, 6, 6)], "door_x": 5, "boxes": [
+    "chalet": {"floor": [(1, 3, 6, 6), (8, 3, 10, 6), (7, 5, 7, 6)], "door_x": 5, "boxes": [
+        (7.9, 4.6, 1.1, 0.3),    # divisoria cocina/dormitorio
+        (9.8, 4.9, 1.6, 1.3),    # cama
         (0.5, 3.0, 1.3, 0.4),    # reloj
         (4.4, 3.0, 2.7, 0.7),    # sofa de arriba
         (0.7, 3.7, 3.0, 1.8),    # sofa de la izquierda

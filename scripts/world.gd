@@ -653,6 +653,8 @@ func _random_kind() -> String:
 		return "cartuchos"
 	if r < 0.96:
 		return "machete"
+	if r < 0.985:
+		return "semillas"
 	return "scrap"
 
 
@@ -665,6 +667,8 @@ func _place_special_loot(refuge: Dictionary, hospital: Dictionary) -> void:
 	for i in mini(kinds_near.size(), near.size()):
 		_loot_in(near[i], kinds_near[i])
 		_loot_in(near[i], "balas" if i == 1 else "bandage")
+	_loot_in(refuge, "semillas")   # el refugio trae un par de paquetes para empezar el huerto
+	_loot_in(refuge, "semillas")
 	_loot_in(hospital, "pistola")
 	# la tarjeta Horizonte siempre aparece en una de las casas cercanas al refugio
 	var card_pool: Array = []
@@ -689,10 +693,10 @@ func _place_special_loot(refuge: Dictionary, hospital: Dictionary) -> void:
 
 func _place_civic_loot() -> void:
 	var table := {
-		"supermercado": ["food", "food", "food", "water", "water", "scrap", "bandage"],
+		"supermercado": ["food", "food", "food", "water", "water", "scrap", "bandage", "semillas"],
 		"comisaria": ["pistola", "balas", "balas", "balas", "bandage", "bandage"],
 		"iglesia": ["bandage", "bandage", "water"],
-		"tienda": ["food", "water", "scrap"],
+		"tienda": ["food", "water", "scrap", "semillas"],
 		"hospital": ["bandage", "bandage", "bandage", "water"],
 		"apartamentos": ["food", "scrap", "bandage", "balas"],
 	}

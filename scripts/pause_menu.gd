@@ -42,7 +42,8 @@ func _panel_rect() -> Rect2:
 
 func _bar_rect(i: int) -> Rect2:
 	var pr := _panel_rect()
-	return Rect2(pr.position.x + 82.0, pr.position.y + 79.0 + i * 36.0, pr.size.x - 110.0, 12.0)
+	var bw := 264.0
+	return Rect2(pr.position.x + (pr.size.x - bw) * 0.5, pr.position.y + 79.0 + i * 36.0, bw, 12.0)
 
 
 func set_open(v: bool) -> void:
@@ -204,7 +205,8 @@ func _draw() -> void:
 		draw_rect(bar, Color(0.13, 0.13, 0.16))
 		draw_rect(Rect2(bar.position, Vector2(bar.size.x * v, bar.size.y)), Color(0.54, 0.75, 0.43))
 		draw_rect(bar, Color(0.8, 0.8, 0.7), false, 1.0)
-		draw_rect(Rect2(bar.position.x + bar.size.x * v - 3.0, bar.position.y - 3.0, 6.0, bar.size.y + 6.0), Color(0.95, 0.9, 0.72))
+		var kx := clampf(bar.position.x + bar.size.x * v - 3.0, bar.position.x, bar.end.x - 6.0)   # la perilla no se sale de la barra
+		draw_rect(Rect2(kx, bar.position.y - 3.0, 6.0, bar.size.y + 6.0), Color(0.95, 0.9, 0.72))
 	var items := [
 		["continuar", "CONTINUAR", Color(0.12, 0.25, 0.1, 0.95)],
 		["controles", "CONTROLES", Color(0.1, 0.1, 0.13, 0.95)],

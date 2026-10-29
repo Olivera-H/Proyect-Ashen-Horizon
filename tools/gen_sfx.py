@@ -91,7 +91,14 @@ def norm(x, peak=0.9):
     return x / m * peak if m > 0 else x
 
 
+ONLY = None
+if "--only" in __import__("sys").argv:   # regenera solo estos sonidos (no pisa archivos reemplazados a mano)
+    ONLY = set(__import__("sys").argv[__import__("sys").argv.index("--only") + 1].split(","))
+
+
 def save(name, x, peak=0.9):
+    if ONLY is not None and name not in ONLY:
+        return
     x = norm(x, peak)
     x = np.clip(x, -1, 1)
     os.makedirs(OUT, exist_ok=True)
@@ -299,8 +306,18 @@ def ui():
                                        sine(659, 0.25) * env(int(0.25 * SR), 0.005, 0.1, 0.4, 0.12)]), 0.55)
 
 
+def farm():
+    n = int(0.3 * SR)
+    dig = mix(lp(noise(0.3), 900) * env(n, 0.01, 0.1, 0.3, 0.12), sweep(140, 70, 0.3) * decay(n, 0.06) * 0.7)
+    save("plant", mix(dig, hp(noise(0.3), 3500) * decay(n, 0.015) * 0.2), 0.6)
+    n = int(0.5 * SR)
+    rustle = bp(noise(0.5), 1500, 6000) * (0.5 + 0.5 * np.sin(2 * np.pi * 14 * t_(0.5)) ** 2) * env(n, 0.02, 0.2, 0.3, 0.2)
+    pop = np.concatenate([np.zeros(int(0.22 * SR)), sine(620, 0.12) * decay(int(0.12 * SR), 0.03), sine(930, 0.18) * decay(int(0.18 * SR), 0.05) * 0.8])
+    save("harvest", mix(rustle * 0.6, pop * 0.7), 0.6)
+
+
 def main():
-    footsteps(); melee(); guns(); zombies(); player(); items(); doors(); ambience(); alarm(); ui()
+    footsteps(); melee(); guns(); zombies(); player(); items(); doors(); ambience(); alarm(); ui(); farm()
     files = sorted(f for f in os.listdir(OUT) if f.endswith(".wav"))
     size = sum(os.path.getsize(os.path.join(OUT, f)) for f in files)
     print("%d sonidos, %.1f MB en %s" % (len(files), size / 1e6, os.path.normpath(OUT)))
