@@ -209,3 +209,6 @@ En el patio cercado, al sur de la casa (`scripts/refuge.gd`, panel en `scripts/s
 - **Botiquín ampliable**: guarda vendajes como cargas (3/6/10 según el nivel; ampliar cuesta 6 y 10 de chatarra); cada carga cura 40/50/60 y baja la infección.
 - **Generador**: gasta combustible (un bidón ≈ 100 s; depósito máximo ≈ 5 min). Encendido: luces, cura x1,4 de día y x1,8 de noche. De noche, sin generador, el refugio está **frío**: cura x0,35 y hambre/sed 1,7x más rápidas. El combustible se encuentra en talleres, tiendas y el refugio, o se fabrica.
 - Objeto nuevo: **Combustible** (bidón). Sonidos nuevos: `craft`, `gen_start`, `gen_stop`, `gen_loop`.
+
+### Farol del huerto
+Un poste con luz cálida ilumina las parcelas de noche; cada 7–14 s la luz parpadea unos instantes (`scripts/farm.gd`).

@@ -296,6 +296,8 @@ func _update_daylight(delta: float) -> void:
 	_night_k = k
 	if refuge != null:
 		refuge.set_daylight(k)
+	if farm != null:
+		farm.set_daylight(k)
 	get_tree().call_group("night_lights", "set_night", 1.0 - k)
 
 

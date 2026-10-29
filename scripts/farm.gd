@@ -21,6 +21,11 @@ var _tip_seeds := false
 var _tip_plant := false
 var _t := 0.0
 var _area := Rect2()
+var _lamp: PointLight2D
+var _lamp_pos := Vector2.ZERO
+var _night := 0.0
+var _flick := 0.0            # >0 mientras la luz parpadea
+var _next_flick := 6.0
 
 
 func setup(w: World) -> void:
@@ -46,12 +51,36 @@ func setup(w: World) -> void:
 	var first: Vector2 = plots[0]["pos"]
 	var last: Vector2 = plots[plots.size() - 1]["pos"]
 	_area = Rect2(first - Vector2(6, 6), (last + Vector2(PLOT_TILES, PLOT_TILES) * ts) - first + Vector2(12, 12))
+	# farol del huerto: poste en la esquina superior izquierda, luz sobre las parcelas
+	_lamp_pos = _area.position + Vector2(-4.0, 4.0)
+	_lamp = PointLight2D.new()
+	_lamp.texture = PixelArt.make_radial_light(128)
+	_lamp.texture_scale = 2.4
+	_lamp.color = Color("ffe0a0")
+	_lamp.energy = 0.0
+	_lamp.position = _area.get_center() + Vector2(0, -8)
+	add_child(_lamp)
+
+
+func set_daylight(k: float) -> void:
+	_night = 1.0 - k
 
 
 func _process(delta: float) -> void:
 	_t += delta
 	if plots.is_empty():
 		return
+	# parpadeo: cada cierto tiempo la luz titila unos instantes
+	_next_flick -= delta
+	if _next_flick <= 0.0:
+		_flick = 1.2
+		_next_flick = randf_range(7.0, 14.0)
+	var e := 1.0
+	if _flick > 0.0:
+		_flick -= delta
+		e = 0.15 + 0.85 * float(sin(_t * 38.0) > 0.0) * (0.4 + 0.6 * randf())
+	_lamp.energy = _night * e * 0.95
+	queue_redraw()
 	for p in plots:
 		if int(p["stage"]) in [1, 2]:
 			p["t"] += delta
@@ -118,6 +147,11 @@ func _draw() -> void:
 	# tierra labrada comun y borde de madera
 	draw_rect(_area, Color("3b2a1a"))
 	draw_rect(_area, Color("6b4a2a"), false, 2.0)
+	# poste del farol
+	draw_rect(Rect2(_lamp_pos + Vector2(-1, -2), Vector2(2, 14)), Color("2a2118"))
+	var glow := 0.35 + 0.65 * (_lamp.energy / 0.95 if _lamp != null else 0.0)
+	draw_rect(Rect2(_lamp_pos + Vector2(-3, -6), Vector2(6, 5)), Color(1.0, 0.85, 0.45, glow))
+	draw_rect(Rect2(_lamp_pos + Vector2(-3, -6), Vector2(6, 5)), Color("4a3a28"), false, 1.0)
 	for p in plots:
 		_draw_plot(p, ts)
 	# cartel
