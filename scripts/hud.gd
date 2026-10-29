@@ -9,6 +9,7 @@ const BAR_H := 6.0
 var player: Player
 var world: World
 var goals: Array = []
+var status := ""    # aviso de estado (frio en el refugio)
 var hint := ""      # mensaje fijo de objetivo, abajo en pantalla
 var minimap: Minimap
 var bars: StatBars
@@ -88,6 +89,7 @@ func _draw() -> void:
 	_draw_goals(vs)
 	_draw_toasts(vs)
 	_draw_hint(vs)
+	_draw_status(vs)
 	if end_kind != "":
 		_draw_end(vs)
 
@@ -156,6 +158,16 @@ static func goal_visible(g: Dictionary, p: Player) -> bool:
 	if n == "Base militar" or n == "Búnker H-7":
 		return bool(g["main"])
 	return true
+
+
+func _draw_status(vs: Vector2) -> void:
+	if status == "" or end_kind != "":
+		return
+	var pulse := 0.75 + 0.25 * sin(_t * 3.0)
+	var sz := _font.get_string_size(status, HORIZONTAL_ALIGNMENT_CENTER, -1, 10)
+	var y := vs.y - 74.0
+	draw_rect(Rect2(vs.x * 0.5 - sz.x * 0.5 - 8.0, y - 11.0, sz.x + 16.0, 16.0), Color(0, 0, 0, 0.6))
+	_txt(Vector2(0, y), status, 10, Color(0.55, 0.8, 1.0, pulse), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
 
 
 func _draw_hint(vs: Vector2) -> void:

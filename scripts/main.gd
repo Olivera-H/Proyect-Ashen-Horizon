@@ -33,6 +33,9 @@ var ents: Node2D
 var time_of_day := 0.36             # 0 = medianoche, 0.5 = mediodia
 var checkpoint := Vector2.ZERO
 var farm: Farm
+var refuge: Refuge
+var _night_k := 1.0
+var _cold_told := false
 var refuge_rect := Rect2()
 var main_rect := Rect2()
 
@@ -77,6 +80,9 @@ func _ready() -> void:
 	houses = Houses.new()
 	add_child(houses)
 	houses.setup(world, houses_floor, ents)
+	refuge = Refuge.new()               # mesa de trabajo, botiquin y generador
+	add_child(refuge)
+	refuge.setup(world, ents)
 
 	add_child(Music.new())
 	Sfx.ensure(get_tree())
@@ -235,6 +241,10 @@ func _build_ui() -> void:
 	var pm := PauseMenu.new()
 	pm.main = self
 	pause_layer.add_child(pm)
+	var sm := StationMenu.new()          # despues del menu de pausa: recibe antes los toques
+	sm.main = self
+	sm.refuge = refuge
+	pause_layer.add_child(sm)
 
 	player.toast.connect(func(t: String) -> void: hud.toast(t))
 	player.died.connect(_on_player_died)
@@ -283,6 +293,9 @@ func _update_daylight(delta: float) -> void:
 	var dusk := clampf(1.0 - absf(sun) / 0.3, 0.0, 1.0)
 	canvas_mod.color = col.lerp(DUSK_COLOR, dusk * 0.33)
 	player.light_mult = lerpf(1.0, 0.25, k)
+	_night_k = k
+	if refuge != null:
+		refuge.set_daylight(k)
 	get_tree().call_group("night_lights", "set_night", 1.0 - k)
 
 
@@ -351,13 +364,33 @@ func _check_pickups() -> void:
 func _check_refuge(delta: float) -> void:
 	var inside := refuge_rect.has_point(player.global_position)
 	if inside:
-		player.health = minf(player.max_health, player.health + REFUGE_HEAL * delta)
+		var heal := REFUGE_HEAL
+		var cold := false
+		if refuge != null and not refuge.stations.is_empty():
+			if _night_k < 0.4:   # de noche
+				if refuge.gen_on:
+					heal *= 1.8
+				else:
+					heal *= 0.35
+					cold = true
+			elif refuge.gen_on:
+				heal *= 1.4
+		player.health = minf(player.max_health, player.health + heal * delta)
+		player.drain_mult = 1.7 if cold else 1.0
+		hud.status = "FRÍO · enciende el generador (necesita combustible)" if cold else ""
+		if cold and not _cold_told:
+			_cold_told = true
+			hud.toast("Hace frío en el refugio: sin generador casi no te curas y pasas más hambre y sed.", 6.0)
+		elif not cold and _night_k > 0.6:
+			_cold_told = false
 		if not _in_refuge:
 			_in_refuge = true
 			checkpoint = world.start_pos
 			hud.toast("Refugio asegurado: progreso guardado y los infectados pierden tu rastro.", 4.5)
 	else:
 		_in_refuge = false
+		player.drain_mult = 1.0
+		hud.status = ""
 
 
 var _rain_snd := false

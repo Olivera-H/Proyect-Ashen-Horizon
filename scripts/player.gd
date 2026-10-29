@@ -194,6 +194,7 @@ func _physics_process(delta: float) -> void:
 	_update_visuals(delta)
 
 
+var drain_mult := 1.0   # el frio del refugio sin generador acelera hambre y sed
 var _step_t := 0.0
 
 
@@ -229,7 +230,7 @@ func _update_stats(delta: float) -> void:
 		if exhausted and stamina >= max_stamina * 0.25:
 			exhausted = false
 	# hambre y sed
-	var drain := 0.6 if has_skill("estomago") else 1.0
+	var drain := (0.6 if has_skill("estomago") else 1.0) * drain_mult
 	hunger = maxf(0.0, hunger - 0.12 * delta * drain)
 	thirst = maxf(0.0, thirst - 0.18 * delta * drain)
 	if hunger <= 0.0 or thirst <= 0.0:

@@ -201,3 +201,11 @@ Engranaje arriba a la derecha (junto al mapa) o tecla Esc: pausa el juego y perm
 - **Huerto** (`scripts/farm.gd`): 8 parcelas junto a la casa del refugio. Camina sobre una parcela vacía con **semillas** en la mochila para plantar; brota y madura sola (~90 s) y al pisarla madura cosechas 2 de comida (y a veces una semilla). Las semillas están en el refugio y en tiendas, supermercados y casas. Sonidos nuevos: `plant` y `harvest` (regenerables con `python3 tools/gen_sfx.py --only plant,harvest` sin pisar archivos reemplazados a mano).
 - **Hitbox de casas**: chalet, casa y cabaña tenían habitaciones dibujadas que eran muros sólidos; ahora se pueden recorrer todas (puertas entre habitaciones y muebles nuevos). Ajustado en `LAYOUT` de `tools/gen_houses.py`.
 - **Menú de pausa**: barras de volumen centradas y con la perilla dentro de la barra.
+
+## Mejoras del refugio (mesa, botiquín, generador)
+
+En el patio cercado, al sur de la casa (`scripts/refuge.gd`, panel en `scripts/station_menu.gd`). Junto a cada puesto aparece el botón **USAR** arriba al centro (tecla E en PC); el panel pausa el juego.
+- **Mesa de trabajo**: fabrica vendaje (3 chatarra), balas x6 (5), cartuchos x3 (6), combustible (6) y semillas x3 (2).
+- **Botiquín ampliable**: guarda vendajes como cargas (3/6/10 según el nivel; ampliar cuesta 6 y 10 de chatarra); cada carga cura 40/50/60 y baja la infección.
+- **Generador**: gasta combustible (un bidón ≈ 100 s; depósito máximo ≈ 5 min). Encendido: luces, cura x1,4 de día y x1,8 de noche. De noche, sin generador, el refugio está **frío**: cura x0,35 y hambre/sed 1,7x más rápidas. El combustible se encuentra en talleres, tiendas y el refugio, o se fabrica.
+- Objeto nuevo: **Combustible** (bidón). Sonidos nuevos: `craft`, `gen_start`, `gen_stop`, `gen_loop`.

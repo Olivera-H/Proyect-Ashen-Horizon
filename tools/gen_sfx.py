@@ -316,8 +316,35 @@ def farm():
     save("harvest", mix(rustle * 0.6, pop * 0.7), 0.6)
 
 
+def refuge():
+    for i, (f0, d0) in enumerate(((0.0, 0.0), (0.16, 0.0), (0.34, 0.0))):
+        pass
+    parts = []
+    for t0 in (0.0, 0.14, 0.34, 0.48):
+        n = int(0.09 * SR)
+        tap = mix(sine(1900 if t0 < 0.3 else 2300, 0.09) * decay(n, 0.012), noise(0.09) * decay(n, 0.006) * 0.5)
+        parts.append(np.concatenate([np.zeros(int(t0 * SR)), tap]))
+    save("craft", mix(*parts), 0.6)
+    n = int(1.0 * SR)
+    f = np.linspace(40, 85, n)
+    sput = lp(saw(f * (1 + 0.5 * (np.sin(2 * np.pi * 14 * t_(1.0)) > 0.3)), 1.0), 400) * env(n, 0.02, 0.5, 0.6, 0.3)
+    save("gen_start", mix(sput * 0.8, lp(noise(1.0), 500) * env(n, 0.05, 0.4, 0.3, 0.3) * 0.4), 0.8)
+    n = int(0.8 * SR)
+    f = np.linspace(80, 25, n)
+    save("gen_stop", lp(saw(f, 0.8), 350) * env(n, 0.01, 0.5, 0.2, 0.3), 0.7)
+    d = 2.0
+    n = int(d * SR)
+    t = t_(d)
+    hum = lp(saw(np.full(n, 62.0), d), 380) * (0.75 + 0.25 * np.sin(2 * np.pi * 31 * t))
+    rum = lp(noise(d), 260) * 0.5
+    x = hum + rum
+    fade = int(0.1 * SR)
+    x[:fade] = x[:fade] * np.linspace(0, 1, fade) + x[-fade:] * np.linspace(1, 0, fade)
+    save("gen_loop", x[:-fade], 0.55)
+
+
 def main():
-    footsteps(); melee(); guns(); zombies(); player(); items(); doors(); ambience(); alarm(); ui(); farm()
+    footsteps(); melee(); guns(); zombies(); player(); items(); doors(); ambience(); alarm(); ui(); farm(); refuge()
     files = sorted(f for f in os.listdir(OUT) if f.endswith(".wav"))
     size = sum(os.path.getsize(os.path.join(OUT, f)) for f in files)
     print("%d sonidos, %.1f MB en %s" % (len(files), size / 1e6, os.path.normpath(OUT)))

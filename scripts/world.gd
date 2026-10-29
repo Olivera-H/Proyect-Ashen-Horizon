@@ -653,8 +653,10 @@ func _random_kind() -> String:
 		return "cartuchos"
 	if r < 0.96:
 		return "machete"
-	if r < 0.985:
+	if r < 0.975:
 		return "semillas"
+	if r < 0.99:
+		return "combustible"
 	return "scrap"
 
 
@@ -696,7 +698,7 @@ func _place_civic_loot() -> void:
 		"supermercado": ["food", "food", "food", "water", "water", "scrap", "bandage", "semillas"],
 		"comisaria": ["pistola", "balas", "balas", "balas", "bandage", "bandage"],
 		"iglesia": ["bandage", "bandage", "water"],
-		"tienda": ["food", "water", "scrap", "semillas"],
+		"tienda": ["food", "water", "scrap", "semillas", "combustible"],
 		"hospital": ["bandage", "bandage", "bandage", "water"],
 		"apartamentos": ["food", "scrap", "bandage", "balas"],
 	}
@@ -771,6 +773,9 @@ func _pick_loot_and_spawns() -> void:
 		for i in rng.randi_range(2, 4):
 			var t: Vector2i = fl[rng.randi() % fl.size()]
 			loot_spots.append({"pos": tile_center(t), "kind": _random_kind()})
+		if b["kind"] == "taller":   # los talleres guardan bidones de combustible
+			_loot_in(b, "combustible")
+			_loot_in(b, "scrap")
 	_place_special_loot(refuge_b, hospital_b)
 	_place_lab_loot()
 	_place_civic_loot()

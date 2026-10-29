@@ -18,6 +18,7 @@ const ITEMS := {
 	"llave": {"name": "Llave del búnker H-7", "desc": "Llave de acceso del coronel Reyes. Abre el búnker de la Zona Cero.", "max": 1, "key": true},
 	"suero": {"name": "Suero H-7", "desc": "La muestra madre. Llévala al refugio.", "max": 1, "key": true},
 	"semillas": {"name": "Semillas", "desc": "Plántalas en las parcelas del huerto del refugio y cosecha comida.", "max": 10},
+	"combustible": {"name": "Combustible", "desc": "Bidón para el generador del refugio.", "max": 5},
 	"balas": {"name": "Balas", "desc": "Munición de la pistola.", "max": 18},
 	"cartuchos": {"name": "Cartuchos", "desc": "Munición de la escopeta.", "max": 8},
 	"tarjeta": {"name": "Tarjeta Horizonte", "desc": "Acceso de nivel 3. Abre la puerta del laboratorio.", "max": 1, "key": true},
@@ -34,7 +35,7 @@ static var _tex := {}
 
 
 ## Cuanto da cada recogida de municion o arma.
-const PICKUP_AMOUNT := {"balas": 6, "cartuchos": 3, "semillas": 3}
+const PICKUP_AMOUNT := {"balas": 6, "cartuchos": 3, "semillas": 3, "combustible": 1}
 
 
 static func is_weapon(id: String) -> bool:

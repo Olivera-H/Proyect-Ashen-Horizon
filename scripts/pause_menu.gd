@@ -96,7 +96,7 @@ func _input(event: InputEvent) -> void:
 	_last_press_ms = now
 	_last_press_pos = pos
 	if not open:
-		if _can_show() and _gear_rect().grow(6.0).has_point(pos):
+		if _can_show() and not get_tree().paused and _gear_rect().grow(6.0).has_point(pos):
 			set_open(true)
 			get_viewport().set_input_as_handled()
 		return
@@ -163,7 +163,7 @@ func _draw() -> void:
 	if _font == null:
 		return
 	if not open:
-		if _can_show():
+		if _can_show() and not get_tree().paused:
 			var g := _gear_rect()
 			draw_rect(g, Color(0.05, 0.05, 0.07, 0.65))
 			draw_rect(g, Color(0.8, 0.78, 0.7, 0.7), false, 1.0)
