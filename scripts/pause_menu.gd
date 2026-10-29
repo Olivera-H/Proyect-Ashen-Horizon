@@ -88,18 +88,24 @@ func _input(event: InputEvent) -> void:
 		return
 	else:
 		return
-	# un mismo toque llega como evento tactil Y de raton (emulacion): atender solo el primero
+	# un mismo toque llega como evento tactil Y de raton (emulacion): atender solo el primero.
+	# IMPORTANTE: fuera del menu solo se consumen los toques sobre el engranaje; el resto
+	# (joystick, botones, mochila, mapa) debe llegar intacto a sus nodos.
 	var now := Time.get_ticks_msec()
-	if now - _last_press_ms < 300 and pos.distance_to(_last_press_pos) < 16.0:
+	var dup := now - _last_press_ms < 300 and pos.distance_to(_last_press_pos) < 16.0
+	if not open:
+		if _can_show() and not get_tree().paused and _gear_rect().grow(6.0).has_point(pos):
+			get_viewport().set_input_as_handled()
+			if not dup:
+				_last_press_ms = now
+				_last_press_pos = pos
+				set_open(true)
+		return
+	if dup:
 		get_viewport().set_input_as_handled()
 		return
 	_last_press_ms = now
 	_last_press_pos = pos
-	if not open:
-		if _can_show() and not get_tree().paused and _gear_rect().grow(6.0).has_point(pos):
-			set_open(true)
-			get_viewport().set_input_as_handled()
-		return
 	get_viewport().set_input_as_handled()
 	if _drag(pos):
 		return
