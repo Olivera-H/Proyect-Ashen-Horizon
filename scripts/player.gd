@@ -286,6 +286,12 @@ func _try_attack() -> void:
 		if to_z.length() <= reach and to_z.normalized().dot(facing) > 0.3:
 			z.take_damage(dmg, facing * 140.0, 0.35 if armed else 0.15)
 			hit_any = true
+	if not hit_any:   # sin zombis a tiro, el golpe desmonta una cerca o barricada cercana
+		for st in get_tree().get_nodes_in_group("structures"):
+			var sn := st as Structure
+			if sn.near_player(global_position + facing * reach * 0.5, 6.0):
+				sn.dismantle_swing(self)
+				break
 	if hit_any:
 		Sfx.play("hit_metal" if weapon_id == "machete" or weapon_id == "hacha" else "hit", -2.0)
 	if hit_any and armed:
@@ -433,6 +439,12 @@ func use_slot(i: int) -> bool:
 			thirst = minf(100.0, thirst + 40.0)
 			Sfx.play("drink", -3.0)
 			toast.emit("Agua: sed saciada")
+		"cerca", "barricada":
+			if not Structure.try_place(self, s["id"]):
+				return false
+		"madera":
+			toast.emit("La madera se usa en la mesa de trabajo del refugio: cercas y barricadas.")
+			return false
 		"scrap":
 			if scrap < 2 or weapon_is_gun or weapon_durability >= weapon_max:
 				_try_repair()

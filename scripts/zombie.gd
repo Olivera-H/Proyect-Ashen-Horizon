@@ -168,6 +168,12 @@ func _physics_process(delta: float) -> void:
 			speed = _do_chase()
 	velocity = velocity.move_toward(_desired_velocity(speed), 400.0 * delta)
 	move_and_slide()
+	if state != State.WANDER:   # si una cerca o barricada les cierra el paso, la golpean
+		for i in get_slide_collision_count():
+			var col := get_slide_collision(i).get_collider()
+			if col is Structure:
+				(col as Structure).hit(damage * 0.5 * delta)
+				_atk_t = 0.4
 	_update_visuals()
 
 

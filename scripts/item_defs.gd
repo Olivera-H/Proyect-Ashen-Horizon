@@ -19,6 +19,9 @@ const ITEMS := {
 	"suero": {"name": "Suero H-7", "desc": "La muestra madre. Llévala al refugio.", "max": 1, "key": true},
 	"semillas": {"name": "Semillas", "desc": "Plántalas en las parcelas del huerto del refugio y cosecha comida.", "max": 10},
 	"combustible": {"name": "Combustible", "desc": "Bidón para el generador del refugio.", "max": 5},
+	"madera": {"name": "Madera", "desc": "Tablas y troncos. En la mesa de trabajo del refugio se fabrican cercas y barricadas.", "max": 10},
+	"cerca": {"name": "Cerca", "desc": "Colócala delante de ti (usar). Frena a los zombis un rato. Golpéala con tu arma de mano para recogerla.", "max": 6, "use": true},
+	"barricada": {"name": "Barricada", "desc": "Cubre 2 tiles (una puerta). Aguanta mucho más que una cerca. Golpéala con tu arma de mano para recogerla.", "max": 4, "use": true},
 	"balas": {"name": "Balas", "desc": "Munición de la pistola.", "max": 18},
 	"cartuchos": {"name": "Cartuchos", "desc": "Munición de la escopeta.", "max": 8},
 	"tarjeta": {"name": "Tarjeta Horizonte", "desc": "Acceso de nivel 3. Abre la puerta del laboratorio.", "max": 1, "key": true},
@@ -35,7 +38,7 @@ static var _tex := {}
 
 
 ## Cuanto da cada recogida de municion o arma.
-const PICKUP_AMOUNT := {"balas": 6, "cartuchos": 3, "semillas": 3, "combustible": 1}
+const PICKUP_AMOUNT := {"madera": 2, "balas": 6, "cartuchos": 3, "semillas": 3, "combustible": 1}
 
 
 static func is_weapon(id: String) -> bool:

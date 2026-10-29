@@ -97,6 +97,36 @@ def scrap():
     return outline(im)
 
 
+def madera():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    for k, (y, c) in enumerate(((3, "#a8794a"), (7, "#8a6a3e"), (11, "#a8794a"))):
+        R(d, 2 + (k % 2), y, 12 + (k % 2), y + 3, hx(c)); R(d, 2 + (k % 2), y, 12 + (k % 2), y, hx("#d0a068"))
+        R(d, 2 + (k % 2), y + 3, 12 + (k % 2), y + 3, hx("#5a4020"))
+        P(im, [(4 + (k % 2), y + 1), (8 + (k % 2), y + 2)], hx("#6a4a2c"))
+        R(d, 12 + (k % 2), y, 13 + (k % 2), y + 3, hx("#d8b078")); P(im, [(12 + (k % 2), y + 1)], hx("#8a6a3e"))
+    return outline(im)
+
+
+def cerca():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    R(d, 1, 5, 14, 6, hx("#a8794a")); R(d, 1, 10, 14, 11, hx("#a8794a")); R(d, 1, 5, 14, 5, hx("#d0a068"))
+    for x in (2, 7, 12):
+        R(d, x, 2, x + 2, 14, hx("#8a6a3e")); R(d, x, 2, x + 2, 3, hx("#d0a068")); R(d, x + 2, 3, x + 2, 14, hx("#5a4020"))
+    return outline(im)
+
+
+def barricada():
+    im = new(16, 16); d = ImageDraw.Draw(im)
+    for k, y in enumerate((4, 8, 12)):
+        R(d, 1, y, 14, y + 2, hx("#8a6a3e") if k % 2 == 0 else hx("#765832")); R(d, 1, y, 14, y, hx("#d0a068"))
+    for i in range(10):
+        P(im, [(3 + i, 13 - i), (3 + i, 12 - i)], hx("#4a3420"))
+        P(im, [(12 - i, 13 - i), (12 - i, 12 - i)], hx("#4a3420"))
+    for x in (3, 7, 11):
+        P(im, [(x, 2), (x, 3)], hx("#c8ccd2"))
+    return outline(im)
+
+
 # ------------------------------------------------------------ armas y municion
 def line(d, pts, c, w=1):
     d.line(pts, fill=c, width=w)
@@ -280,7 +310,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     sp = {"item_bandage": bandage(), "item_food": food(), "item_water": water(), "item_scrap": scrap(),
           "item_tubo": tubo(), "item_hacha": hacha(), "item_machete": machete(), "item_pistola": pistola(),
-          "item_escopeta": escopeta(), "item_fusil": fusil(), "item_mascara": mascara(), "item_llave": llave(), "item_suero": suero(), "item_balas": balas(), "item_cartuchos": cartuchos(), "item_tarjeta": tarjeta(), "item_semillas": semillas(), "item_combustible": combustible(),
+          "item_escopeta": escopeta(), "item_fusil": fusil(), "item_mascara": mascara(), "item_llave": llave(), "item_suero": suero(), "item_balas": balas(), "item_cartuchos": cartuchos(), "item_tarjeta": tarjeta(), "item_semillas": semillas(), "item_combustible": combustible(), "item_madera": madera(), "item_cerca": cerca(), "item_barricada": barricada(),
           "slot": slot("item"), "slot_sel": slot("sel"), "slot_skill": slot("skill"), "bag": backpack()}
     for s in ("golpe", "resistencia", "pies", "manos", "estomago", "sigilo"):
         sp["skill_" + s] = skill(s)

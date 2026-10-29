@@ -216,3 +216,10 @@ Un poste con luz cálida ilumina las parcelas de noche; cada 7–14 s la luz par
 ### Casa del refugio (diseño propio)
 La casa del refugio (`refugio`, 14x16 tiles) se dibuja por código en `tools/gen_buildings.py` (cabaña de madera con paneles solares, lona, antena y chimenea). Dentro: cama, estufa, cocina, sofá, mesa, **mesa de trabajo, botiquín y cofre** (los puestos van dentro de la casa). El **cofre** guarda hasta 60 unidades de recursos (vendajes, comida, agua, chatarra, semillas, combustible y munición). El **generador** queda en el patio delantero.
 Luces interiores: se encienden de **18:00 a 6:00**; con el generador encendido brillan más y más claras. El techo no se ilumina desde dentro (`light_mask`). Regenerar el arte: `python3 tools/gen_houses.py`.
+
+### Madera, cercas y barricadas
+- **Madera** (`madera`): aparece como botín (tiendas, talleres y casas). En la **mesa de trabajo**: *Cerca x2* (3 madera) y *Barricada* (5 madera + 2 chatarra).
+- **Cerca** (1 tile) y **Barricada** (2 tiles, tapa una puerta): se colocan con USAR delante del jugador (`scripts/structure.gd`). Los zombis que chocan con ellas las golpean hasta romperlas (cerca 40 vida, barricada 150). Golpeándolas 3 veces con el arma de mano (sin zombis a tiro) se recogen. Dentro del patio del refugio los zombis no persiguen, así que son para defender casas y calles.
+
+### APK de Android
+Ver `docs/APK.md` (workflow `.github/workflows/android.yml`, se lanza a mano desde Actions y publica el APK en Releases).

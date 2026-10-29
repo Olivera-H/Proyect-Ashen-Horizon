@@ -34,7 +34,7 @@ func _use_rect() -> Rect2:
 
 func _panel_rect() -> Rect2:
 	var vs := get_viewport_rect().size
-	var h := 312.0 if station == "chest" else 270.0
+	var h := 340.0 if station == "chest" else (330.0 if station == "bench" else 270.0)
 	return Rect2(vs.x * 0.5 - 180.0, vs.y * 0.5 - h * 0.5, 360.0, h)
 
 
@@ -159,10 +159,10 @@ func _draw() -> void:
 			_draw_chest(pr)
 			return
 		"bench":
-			info = ["Chatarra: %d" % refuge.scrap(), "Fabrica con la chatarra que encuentres."]
+			info = ["Chatarra: %d   ·   Madera: %d" % [refuge.scrap(), refuge.wood()], "Cercas y barricadas se colocan con USAR en la mochila."]
 			for i in Refuge.RECIPES.size():
 				var rc: Dictionary = Refuge.RECIPES[i]
-				rows.append(["craft%d" % i, "%s  ·  %d chatarra" % [rc["name"], rc["cost"]], refuge.scrap() >= int(rc["cost"])])
+				rows.append(["craft%d" % i, "%s  ·  %s" % [rc["name"], Refuge.cost_text(rc)], refuge.can_craft(rc)])
 		"medkit":
 			var lv := refuge.med_level
 			info = ["Nivel %d/3  ·  Cargas %d/%d  ·  Cura %d" % [lv + 1, refuge.med_charges, refuge.med_cap(), int(Refuge.MED_HEAL[lv])],
@@ -191,14 +191,14 @@ func _draw() -> void:
 		y += 22.0
 	y += 6.0
 	for rw in rows:
-		var rect := Rect2(pr.position.x + 30.0, y, pr.size.x - 60.0, 24.0)
+		var rect := Rect2(pr.position.x + 30.0, y, pr.size.x - 60.0, 22.0 if station == "bench" else 24.0)
 		var on: bool = rw[2]
 		if rw[0] != "":
 			_buttons.append({"rect": rect, "id": rw[0]})
 		draw_rect(rect, Color(0.12, 0.22, 0.1, 0.95) if on else Color(0.09, 0.09, 0.1, 0.95))
 		draw_rect(rect, Color(0.75, 0.7, 0.62, 0.85 if on else 0.35), false, 1.0)
 		_txt(rw[1], Vector2(rect.position.x, rect.position.y + 16.0), 10, Color(0.95, 0.92, 0.85) if on else Color(0.5, 0.5, 0.5), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x)
-		y += 28.0
+		y += 26.0 if station == "bench" else 28.0
 	var cr := Rect2(pr.position.x + 30.0, pr.end.y - 32.0, pr.size.x - 60.0, 22.0)
 	_buttons.append({"rect": cr, "id": "cerrar"})
 	draw_rect(cr, Color(0.25, 0.07, 0.06, 0.95))

@@ -1,0 +1,62 @@
+name: Compilar APK Android
+# Se lanza a mano: pestaña Actions > "Compilar APK Android" > Run workflow.
+# Al terminar, el APK queda en Releases (etiqueta "android-latest") listo para descargar desde el móvil.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar plantillas, llave de depuración y ajustes de Godot
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config/godot"
+          cp -r /root/.local/share/godot/export_templates/* "$HOME/.local/share/godot/export_templates/"
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android \
+            -keystore "$HOME/debug.keystore" -storepass android \
+            -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          for f in editor_settings-4.tres editor_settings-4.3.tres; do
+            {
+              echo '[gd_resource type="EditorSettings" format=3]'
+              echo '[resource]'
+              echo 'export/android/android_sdk_path = "/usr/lib/android-sdk"'
+              echo 'export/android/java_sdk_path = "/usr/lib/jvm/java-17-openjdk-amd64"'
+              echo "export/android/debug_keystore = \"$HOME/debug.keystore\""
+              echo 'export/android/debug_keystore_user = "androiddebugkey"'
+              echo 'export/android/debug_keystore_pass = "android"'
+              echo 'export/android/shutdown_adb_on_exit = true'
+            } > "$HOME/.config/godot/$f"
+          done
+          ls /usr/lib/jvm /usr/lib/android-sdk || true
+      - name: Importar recursos
+        run: godot --headless --path . --import || true
+      - name: Exportar APK
+        run: |
+          mkdir -p build/android
+          godot --headless --verbose --path . --export-debug "Android" build/android/AshenHorizon.apk
+          ls -la build/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AshenHorizon-apk
+          path: build/android/AshenHorizon.apk
+
+  publicar:
+    needs: apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: AshenHorizon-apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: Ashen Horizon (APK Android)
+          body: "APK de depuración firmado, listo para instalar. Se actualiza cada vez que se lanza el workflow."
+          prerelease: true
+          files: AshenHorizon.apk

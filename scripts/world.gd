@@ -639,6 +639,8 @@ func _build_fence_ring(b: Dictionary, ring: Rect2i, sign_name: String) -> void:
 
 func _random_kind() -> String:
 	var r := rng.randf()
+	if r < 0.10:
+		return "madera"
 	if r < 0.30:
 		return "scrap"
 	if r < 0.46:
@@ -698,9 +700,10 @@ func _place_civic_loot() -> void:
 		"supermercado": ["food", "food", "food", "water", "water", "scrap", "bandage", "semillas"],
 		"comisaria": ["pistola", "balas", "balas", "balas", "bandage", "bandage"],
 		"iglesia": ["bandage", "bandage", "water"],
-		"tienda": ["food", "water", "scrap", "semillas", "combustible"],
+		"tienda": ["food", "water", "scrap", "semillas", "combustible", "madera", "madera"],
 		"hospital": ["bandage", "bandage", "bandage", "water"],
 		"apartamentos": ["food", "scrap", "bandage", "balas"],
+		"taller": ["madera", "madera", "madera", "scrap", "combustible"],
 	}
 	for b in buildings:
 		var k: String = b["kind"]

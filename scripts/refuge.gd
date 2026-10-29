@@ -16,7 +16,7 @@ const MED_CAP := [3, 6, 10]
 const MED_HEAL := [40.0, 50.0, 60.0]
 const MED_COST := [0, 6, 10]   # chatarra para llegar a cada nivel
 const CHEST_CAP := 60
-const CHEST_ITEMS := ["bandage", "food", "water", "scrap", "semillas", "combustible", "balas", "cartuchos"]
+const CHEST_ITEMS := ["bandage", "food", "water", "scrap", "madera", "semillas", "combustible", "balas", "cartuchos"]
 ## Lamparas del interior (tiles desde la esquina de la casa); coinciden con "lamps" de tools/gen_buildings.py.
 const LAMPS := [Vector2(3.6, 5.4), Vector2(9.6, 5.4), Vector2(6.6, 8.7)]
 const LAMP_ON := 18.0          # hora a la que se encienden las luces
@@ -27,6 +27,8 @@ const RECIPES := [
 	{"id": "cartuchos", "name": "Cartuchos x3", "give": "cartuchos", "n": 3, "cost": 6},
 	{"id": "combustible", "name": "Combustible", "n": 1, "cost": 6},
 	{"id": "semillas", "name": "Semillas x3", "n": 3, "cost": 2},
+	{"id": "cerca", "name": "Cerca x2", "n": 2, "cost": 0, "wood": 3},
+	{"id": "barricada", "name": "Barricada", "n": 1, "cost": 2, "wood": 5},
 ]
 
 var world: World
@@ -176,10 +178,28 @@ func scrap() -> int:
 	return player.inventory.count("scrap")
 
 
+func wood() -> int:
+	return player.inventory.count("madera")
+
+
+## Texto del coste de una receta ("3 madera + 2 chatarra").
+static func cost_text(r: Dictionary) -> String:
+	var parts: Array = []
+	if int(r.get("wood", 0)) > 0:
+		parts.append("%d madera" % int(r["wood"]))
+	if int(r["cost"]) > 0:
+		parts.append("%d chatarra" % int(r["cost"]))
+	return " + ".join(parts)
+
+
+func can_craft(r: Dictionary) -> bool:
+	return scrap() >= int(r["cost"]) and wood() >= int(r.get("wood", 0))
+
+
 func craft(i: int) -> void:
 	var r: Dictionary = RECIPES[i]
-	if scrap() < int(r["cost"]):
-		_say("Te falta chatarra (%d)." % int(r["cost"]))
+	if not can_craft(r):
+		_say("Te falta material (%s)." % cost_text(r))
 		return
 	var give: String = r.get("give", r["id"])
 	var n: int = int(r["n"])
@@ -189,6 +209,8 @@ func craft(i: int) -> void:
 		_say("Mochila llena: libera espacio.")
 		return
 	player.inventory.remove("scrap", int(r["cost"]))
+	if int(r.get("wood", 0)) > 0:
+		player.inventory.remove("madera", int(r["wood"]))
 	Sfx.play("craft", -2.0)
 	_say("Fabricaste: %s." % String(r["name"]).to_lower())
 
