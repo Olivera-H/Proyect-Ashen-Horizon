@@ -232,6 +232,24 @@ func _press(id: String) -> void:
 			_panel = ""
 
 
+## Rectangulo con las esquinas cortadas (estilo consola militar).
+func _chamfer(r: Rect2, cut: float) -> PackedVector2Array:
+	return PackedVector2Array([
+		r.position + Vector2(cut, 0), Vector2(r.end.x - cut, r.position.y), Vector2(r.end.x, r.position.y + cut),
+		Vector2(r.end.x, r.end.y - cut), Vector2(r.end.x - cut, r.end.y), Vector2(r.position.x + cut, r.end.y),
+		Vector2(r.position.x, r.end.y - cut), Vector2(r.position.x, r.position.y + cut)])
+
+
+func _brackets(r: Rect2, ln: float, col: Color) -> void:
+	for sx in [0, 1]:
+		for sy in [0, 1]:
+			var c := Vector2(r.position.x if sx == 0 else r.end.x, r.position.y if sy == 0 else r.end.y)
+			var dx := ln if sx == 0 else -ln
+			var dy := ln if sy == 0 else -ln
+			draw_line(c, c + Vector2(dx, 0), col, 2.0)
+			draw_line(c, c + Vector2(0, dy), col, 2.0)
+
+
 func _txt(s: String, pos: Vector2, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
 	draw_string_outline(_font, pos, s, align, width, size, 3, Color(0, 0, 0, 0.9))
 	draw_string(_font, pos, s, align, width, size, col)
@@ -254,6 +272,27 @@ func _draw() -> void:
 	draw_circle(Vector2(vs.x * 0.78, vs.y * 0.2), 14.0, Color(0.75, 0.22, 0.16, 0.55))
 	# ruinas
 	var base := vs.y * 0.80
+	# sol de ceniza en el horizonte: disco rojo con franjas (estilo retro) y halo
+	var sun_c := Vector2(vs.x * 0.52, base - 6.0)
+	for gi in 6:
+		draw_circle(sun_c, 120.0 - gi * 14.0, Color(0.6, 0.1, 0.06, 0.02 + 0.005 * gi))
+	draw_circle(sun_c, 62.0, Color(0.62, 0.13, 0.07, 0.42))
+	draw_circle(sun_c, 52.0, Color(0.78, 0.2, 0.1, 0.30))
+	for i in 9:   # franjas oscuras que se hacen mas gruesas hacia abajo
+		var sy := sun_c.y - 56.0 + i * 8.0 + 4.0
+		draw_rect(Rect2(sun_c.x - 64.0, sy, 128.0, 1.0 + i * 0.55), Color(0.1, 0.07, 0.075, 0.95))
+	# segunda capa de edificios, lejana y mas clara
+	for b in _skyline:
+		var fx: float = fposmod(b[0] * vs.x * 1.25 + 60.0 + _t * 1.2, vs.x * 1.3) - 40.0
+		var fw: float = b[1] * vs.x * 0.9
+		var fh: float = b[2] * vs.y * 0.62 + 10.0
+		draw_rect(Rect2(fx, base - fh - 4.0, fw, fh + 8.0), Color(0.075, 0.07, 0.095, 0.9))
+	# reflector que barre el cielo desde una torre
+	var tw_x := vs.x * 0.9
+	var ang := -1.9 + 0.55 * sin(_t * 0.35)
+	var beam := PackedVector2Array([Vector2(tw_x, base - 30.0), Vector2(tw_x, base - 30.0) + Vector2.from_angle(ang - 0.05) * 420.0, Vector2(tw_x, base - 30.0) + Vector2.from_angle(ang + 0.05) * 420.0])
+	draw_colored_polygon(beam, Color(0.85, 0.9, 1.0, 0.035))
+	draw_rect(Rect2(tw_x - 2.0, base - 30.0, 4.0, 30.0), Color(0.03, 0.03, 0.04))
 	for b in _skyline:
 		var bx: float = b[0] * vs.x
 		var bw: float = b[1] * vs.x
@@ -325,23 +364,44 @@ func _draw() -> void:
 	var neon := 1.0 if fmod(_t, 7.0) > 0.35 or fmod(_t * 23.0, 1.0) > 0.5 else 0.45   # parpadeo ocasional
 	for gi in 5:
 		draw_circle(Vector2(col_x + col_w * 0.5, ly + 20.0), 150.0 - gi * 28.0, Color(0.5, 0.08, 0.05, 0.018 * neon))
-	_txt("ASHEN", Vector2(col_x - 20.0 + shake, ly), 44, Color(0.9, 0.82, 0.7), HORIZONTAL_ALIGNMENT_CENTER, col_w + 40.0)
-	_txt("HORIZON", Vector2(col_x - 20.0, ly + 40.0), 44, Color(0.85 * neon, 0.16 * neon, 0.12 * neon), HORIZONTAL_ALIGNMENT_CENTER, col_w + 40.0)
-	draw_rect(Rect2(col_x, ly + 49.0, col_w, 1.0), Color(0.75, 0.7, 0.62, 0.5))
+	# emblema: sol naciente sobre una linea de horizonte
+	var ex := col_x + col_w * 0.5
+	var ey := ly - 40.0
+	draw_arc(Vector2(ex, ey + 10.0), 11.0, PI, TAU, 18, Color(0.9, 0.3, 0.18, 0.95), 2.0)
+	for k in 5:
+		var a2 := PI + (float(k) + 0.5) * PI / 5.0
+		draw_line(Vector2(ex, ey + 10.0) + Vector2.from_angle(a2) * 14.0, Vector2(ex, ey + 10.0) + Vector2.from_angle(a2) * 19.0, Color(0.9, 0.55, 0.3, 0.8), 1.0)
+	draw_rect(Rect2(ex - 26.0, ey + 10.0, 52.0, 2.0), Color(0.85, 0.8, 0.7, 0.9))
+	draw_rect(Rect2(ex - 16.0, ey + 14.0, 32.0, 1.0), Color(0.85, 0.8, 0.7, 0.45))
+	_txt("ASHEN", Vector2(col_x - 20.0 + shake + 2.0, ly + 2.0), 44, Color(0.25, 0.05, 0.03, 0.9), HORIZONTAL_ALIGNMENT_CENTER, col_w + 40.0)   # sombra
+	_txt("ASHEN", Vector2(col_x - 20.0 + shake, ly), 44, Color(0.93, 0.85, 0.72), HORIZONTAL_ALIGNMENT_CENTER, col_w + 40.0)
+	_txt("HORIZON", Vector2(col_x - 20.0 + 2.0, ly + 42.0), 44, Color(0.18, 0.02, 0.02, 0.9), HORIZONTAL_ALIGNMENT_CENTER, col_w + 40.0)
+	_txt("HORIZON", Vector2(col_x - 20.0, ly + 40.0), 44, Color(0.9 * neon, 0.17 * neon, 0.12 * neon), HORIZONTAL_ALIGNMENT_CENTER, col_w + 40.0)
+	draw_rect(Rect2(col_x, ly + 49.0, col_w * 0.5 - 8.0, 1.0), Color(0.75, 0.7, 0.62, 0.5))
+	draw_rect(Rect2(col_x + col_w * 0.5 + 8.0, ly + 49.0, col_w * 0.5 - 8.0, 1.0), Color(0.75, 0.7, 0.62, 0.5))
+	draw_colored_polygon(PackedVector2Array([Vector2(ex - 4.0, ly + 49.5), Vector2(ex, ly + 45.5), Vector2(ex + 4.0, ly + 49.5), Vector2(ex, ly + 53.5)]), Color(0.85, 0.2, 0.14))
 	_txt("supervivencia en un mundo de ceniza", Vector2(col_x - 20.0, ly + 64.0), 9, Color(0.7, 0.7, 0.72, 0.85), HORIZONTAL_ALIGNMENT_CENTER, col_w + 40.0)
 
 	# botones
 	_buttons.clear()
 	if _panel == "":
 		var skin_box := _skin_panel(vs)
-		draw_rect(skin_box, Color(0.045, 0.055, 0.065, 0.91))
-		draw_rect(skin_box, Color(0.54, 0.68, 0.46, 0.8), false, 1.0)
-		draw_rect(Rect2(skin_box.position, Vector2(skin_box.size.x, 3.0)), Color(0.6, 0.76, 0.46))
+		draw_colored_polygon(_chamfer(skin_box, 8.0), Color(0.045, 0.055, 0.065, 0.9))
+		draw_rect(Rect2(skin_box.position.x + 8.0, skin_box.position.y, skin_box.size.x - 16.0, 3.0), Color(0.6, 0.76, 0.46))
+		_brackets(skin_box.grow(2.0), 12.0, Color(0.62, 0.78, 0.48, 0.9))
+		# foco y sombra bajo el personaje
+		var spot := skin_box.position + Vector2(skin_box.size.x * 0.5, 112.0)
+		draw_colored_polygon(PackedVector2Array([spot + Vector2(-8.0, -70.0), spot + Vector2(8.0, -70.0), spot + Vector2(38.0, 4.0), spot + Vector2(-38.0, 4.0)]), Color(0.9, 0.95, 0.75, 0.06))
+		for ei in 4:
+			draw_rect(Rect2(spot.x - 26.0 + ei * 3.0, spot.y - 2.0 + ei * 1.5, 52.0 - ei * 6.0, 2.0), Color(0, 0, 0, 0.28))
 		_txt("SUPERVIVIENTE", skin_box.position + Vector2(0, 19), 12, Color(0.87, 0.91, 0.75), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
 		var si := maxi(0, Settings.skin_index())
 		var sk: Dictionary = Settings.SKINS[si]
 		_txt(String(sk["name"]), skin_box.position + Vector2(0, 133), 12, Color(0.94, 0.87, 0.73), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
 		_txt("%s  ·  SKIN %02d / %02d" % [sk["job"], si + 1, Settings.SKINS.size()], skin_box.position + Vector2(0, 149), 9, Color(0.58, 0.79, 0.55), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
+		for di in Settings.SKINS.size():   # indicador de pagina
+			var dx := skin_box.position.x + skin_box.size.x * 0.5 + (float(di) - (Settings.SKINS.size() - 1) * 0.5) * 9.0
+			draw_circle(Vector2(dx, skin_box.end.y - 8.0), 2.2 if di == si else 1.4, Color(0.62, 0.8, 0.48) if di == si else Color(0.4, 0.45, 0.4, 0.8))
 		for side in 2:   # flechas para cambiar de skin
 			var ar := Rect2(skin_box.position.x + (6.0 if side == 0 else skin_box.size.x - 36.0), skin_box.position.y + 56.0, 30.0, 56.0)
 			_buttons.append({"rect": ar, "id": "skin_prev" if side == 0 else "skin_next"})
@@ -358,13 +418,30 @@ func _draw() -> void:
 			var r := Rect2(col_x, by + i * (bh + 8.0), bw, bh)
 			_buttons.append({"rect": r, "id": items[i][0]})
 			var pulse := 0.5 + 0.5 * sin(_t * 3.0) if i == 0 else 0.0
-			var fill := Color(0.10, 0.10, 0.12, 0.85).lerp(Color(0.45, 0.10, 0.08, 0.9), pulse * 0.8)
-			draw_rect(r, fill)
-			draw_rect(r, Color(0.75, 0.7, 0.62, 0.8), false, 1.0)
-			draw_rect(Rect2(r.position.x, r.position.y, 3.0, bh), Color(0.85, 0.2, 0.14) if i == 0 else Color(0.5, 0.55, 0.45))
+			var fill := Color(0.09, 0.095, 0.115, 0.88).lerp(Color(0.5, 0.1, 0.07, 0.94), pulse * 0.85 if i == 0 else 0.0)
+			draw_colored_polygon(_chamfer(r, 6.0), fill)
+			draw_rect(Rect2(r.position.x + 6.0, r.position.y, r.size.x - 12.0, 1.0), Color(1, 1, 1, 0.12))   # brillo superior
+			draw_polyline(PackedVector2Array(_chamfer(r, 6.0) + PackedVector2Array([_chamfer(r, 6.0)[0]])), Color(0.8, 0.74, 0.64, 0.85) if i == 0 else Color(0.62, 0.62, 0.58, 0.7), 1.0)
+			draw_rect(Rect2(r.position.x + 2.0, r.position.y + 5.0, 3.0, bh - 10.0), Color(0.9, 0.22, 0.15) if i == 0 else Color(0.5, 0.58, 0.45))
+			# icono a la izquierda
+			var ic := Vector2(r.position.x + 20.0, r.position.y + bh * 0.5)
+			var icol := Color(0.95, 0.88, 0.75, 0.95)
+			match int(i):
+				0:   # jugar: triangulo animado
+					var sh := 1.5 * sin(_t * 5.0)
+					draw_colored_polygon(PackedVector2Array([ic + Vector2(-4.0 + sh, -6.0), ic + Vector2(6.0 + sh, 0.0), ic + Vector2(-4.0 + sh, 6.0)]), Color(1.0, 0.5, 0.35))
+				1:   # controles: cruceta
+					draw_rect(Rect2(ic.x - 1.5, ic.y - 6.0, 3.0, 12.0), icol)
+					draw_rect(Rect2(ic.x - 6.0, ic.y - 1.5, 12.0, 3.0), icol)
+				2:   # configuracion: sliders
+					for k in 3:
+						draw_rect(Rect2(ic.x - 6.0, ic.y - 5.0 + k * 5.0, 12.0, 1.5), icol)
+						draw_rect(Rect2(ic.x - 4.0 + k * 3.5, ic.y - 6.5 + k * 5.0, 2.5, 4.5), Color(0.62, 0.8, 0.48))
+				_:   # creditos: estrella
+					draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -6), ic + Vector2(2, -1.5), ic + Vector2(6, -1), ic + Vector2(3, 2), ic + Vector2(4, 6), ic + Vector2(0, 3.5), ic + Vector2(-4, 6), ic + Vector2(-3, 2), ic + Vector2(-6, -1), ic + Vector2(-2, -1.5)]), icol)
 			if i == 0 and fmod(_t, 1.0) < 0.6:
-				_txt(">", Vector2(r.position.x + 9.0, r.position.y + 17.0), 14, Color(0.95, 0.4, 0.3))
-			_txt(items[i][1], Vector2(r.position.x, r.position.y + 17.0), 14, Color(0.95, 0.92, 0.85), HORIZONTAL_ALIGNMENT_CENTER, bw)
+				_txt(">", Vector2(r.end.x - 20.0, r.position.y + 17.0), 14, Color(0.95, 0.4, 0.3))
+			_txt(items[i][1], Vector2(r.position.x + 12.0, r.position.y + 17.0), 14, Color(0.97, 0.94, 0.87), HORIZONTAL_ALIGNMENT_CENTER, bw - 12.0)
 	else:
 		var pr := Rect2(cx - 190, vs.y * 0.36, 380, vs.y * 0.58)
 		draw_rect(pr, Color(0.03, 0.03, 0.04, 0.92))
