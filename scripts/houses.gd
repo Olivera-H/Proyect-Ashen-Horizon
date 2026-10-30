@@ -66,6 +66,9 @@ func _process(delta: float) -> void:
 	for e in _roofs:
 		var b: Dictionary = e["b"]
 		var s: Sprite2D = e["sprite"]
+		var br: Rect2i = b["rect"]
+		if s.modulate.a >= 0.999 and not br.grow(2).has_point(pt):
+			continue    # casa lejana con el techo ya opaco: nada que animar
 		var target := 1.0
 		if _inside(b, pt):
 			target = 0.0

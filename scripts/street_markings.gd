@@ -34,14 +34,35 @@ var world: World
 
 func setup(w: World) -> void:
 	world = w
-	queue_redraw()
-
-
-func _draw() -> void:
-	if world == null:
-		return
+	# Optimizacion: las marcas (decenas de miles de rectangulos) se reparten en trozos de 256 px,
+	# asi el motor solo dibuja los que estan en pantalla en vez de todo el mapa en cada fotograma.
+	var groups := {}
 	for i in world.marks_r.size():
-		draw_rect(world.marks_r[i], COLORS[world.marks_c[i]])
+		var r: Rect2 = world.marks_r[i]
+		var key := Vector2i(floori(r.get_center().x / CHUNK), floori(r.get_center().y / CHUNK))
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(i)
+	for key in groups:
+		var ch := Chunk.new()
+		ch.rects = []
+		ch.cols = []
+		for i in groups[key]:
+			ch.rects.append(world.marks_r[i])
+			ch.cols.append(COLORS[world.marks_c[i]])
+		add_child(ch)
+
+
+const CHUNK := 256.0
+
+
+class Chunk extends Node2D:
+	var rects: Array = []
+	var cols: Array = []
+
+	func _draw() -> void:
+		for i in rects.size():
+			draw_rect(rects[i], cols[i])
 
 
 # ------------------------------------------------------------ construccion

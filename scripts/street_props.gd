@@ -47,6 +47,8 @@ const LIGHT_COLORS := {
 	"lamp": Color(1.0, 0.86, 0.55),
 }
 
+static var focus := Vector2.ZERO          # la fija main cada fotograma (posicion del jugador)
+const LIGHT_RANGE_SQ := 560.0 * 560.0
 static var _tex_cache := {}
 static var _light_tex: Texture2D
 
@@ -466,6 +468,13 @@ class LightProp extends Sprite2D:
 		night = v
 
 	func _process(delta: float) -> void:
+		# optimizacion: de dia o lejos del jugador la luz se apaga del todo (no se dibuja ni se calcula)
+		if night < 0.05 or global_position.distance_squared_to(StreetProps.focus) > StreetProps.LIGHT_RANGE_SQ:
+			if light.visible:
+				light.visible = false
+				light.energy = 0.0
+			return
+		light.visible = true
 		_t -= delta
 		match mode:
 			"amber":

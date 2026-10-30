@@ -110,17 +110,31 @@ func _skin_panel(vs: Vector2) -> Rect2:
 
 
 func _create_skin_preview() -> void:
+	Settings.ensure()
 	_skin_preview = AnimatedSprite2D.new()
-	var frames := SpriteSheets.frames("mateo", SpriteSheets.HUMAN)
-	if frames == null:
-		frames = PixelArt.make_humanoid_frames(Characters.get_data("mateo")["palette"])
-	_skin_preview.sprite_frames = frames
+	_apply_skin_frames()
 	_skin_preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_skin_preview.scale = Vector2(2.6, 2.6)
 	_skin_preview.play("idle_down")
 	add_child(_skin_preview)
 	_position_skin_preview()
 	get_viewport().size_changed.connect(_position_skin_preview)
+
+
+func _apply_skin_frames() -> void:
+	var frames := SpriteSheets.frames(Settings.skin, SpriteSheets.HUMAN)
+	if frames == null:
+		frames = PixelArt.make_humanoid_frames(Characters.get_data("mateo")["palette"])
+	_skin_preview.sprite_frames = frames
+	_skin_preview.play("idle_down")
+	_skin_mode = "idle_down"
+	_skin_timer = 0.0
+
+
+func _change_skin(step: int) -> void:
+	Settings.cycle_skin(step)
+	_apply_skin_frames()
+	Sfx.play("ui_click", -4.0)
 
 
 func _position_skin_preview() -> void:
@@ -205,6 +219,14 @@ func _press(id: String) -> void:
 		"controles", "creditos", "configuracion":
 			Sfx.play("ui_click")
 			_panel = id
+		"skin_prev":
+			_change_skin(-1)
+		"skin_next":
+			_change_skin(1)
+		"mensajes":
+			Settings.hide_messages = not Settings.hide_messages
+			Settings.save()
+			Sfx.play("ui_click")
 		"volver":
 			Sfx.play("ui_close", -4.0)
 			_panel = ""
@@ -316,8 +338,18 @@ func _draw() -> void:
 		draw_rect(skin_box, Color(0.54, 0.68, 0.46, 0.8), false, 1.0)
 		draw_rect(Rect2(skin_box.position, Vector2(skin_box.size.x, 3.0)), Color(0.6, 0.76, 0.46))
 		_txt("SUPERVIVIENTE", skin_box.position + Vector2(0, 19), 12, Color(0.87, 0.91, 0.75), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
-		_txt("MATEO VARGAS", skin_box.position + Vector2(0, 133), 12, Color(0.94, 0.87, 0.73), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
-		_txt("SKIN 01 / EQUIPADA", skin_box.position + Vector2(0, 149), 9, Color(0.58, 0.79, 0.55), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
+		var si := maxi(0, Settings.skin_index())
+		var sk: Dictionary = Settings.SKINS[si]
+		_txt(String(sk["name"]), skin_box.position + Vector2(0, 133), 12, Color(0.94, 0.87, 0.73), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
+		_txt("%s  ·  SKIN %02d / %02d" % [sk["job"], si + 1, Settings.SKINS.size()], skin_box.position + Vector2(0, 149), 9, Color(0.58, 0.79, 0.55), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
+		for side in 2:   # flechas para cambiar de skin
+			var ar := Rect2(skin_box.position.x + (6.0 if side == 0 else skin_box.size.x - 36.0), skin_box.position.y + 56.0, 30.0, 56.0)
+			_buttons.append({"rect": ar, "id": "skin_prev" if side == 0 else "skin_next"})
+			draw_rect(ar, Color(0.1, 0.12, 0.13, 0.7))
+			draw_rect(ar, Color(0.54, 0.68, 0.46, 0.7), false, 1.0)
+			var c := ar.get_center()
+			var d := -1.0 if side == 0 else 1.0
+			draw_colored_polygon(PackedVector2Array([c + Vector2(5.0 * d, 0), c + Vector2(-4.0 * d, -9), c + Vector2(-4.0 * d, 9)]), Color(0.9, 0.88, 0.7))
 		var bw := col_w
 		var bh := 24.0
 		var by := vs.y * 0.52
@@ -367,12 +399,23 @@ func _draw() -> void:
 				draw_rect(Rect2(bar.position, Vector2(bar.size.x * value, bar.size.y)), Color(0.58, 0.78, 0.37))
 				draw_rect(bar, Color(0.8, 0.8, 0.7), false, 1.0)
 				draw_rect(Rect2(bar.position.x + bar.size.x * value - 3.0, bar.position.y - 3.0, 6.0, bar.size.y + 6.0), Color(0.95, 0.9, 0.72))
+		if _panel == "configuracion":
+			var tr := Rect2(pr.position.x + 70.0, pr.end.y - 38.0, pr.size.x - 140.0, 22.0)
+			_buttons.append({"rect": tr, "id": "mensajes"})
+			draw_rect(tr, Color(0.1, 0.1, 0.13, 0.95))
+			draw_rect(tr, Color(0.75, 0.7, 0.62, 0.8), false, 1.0)
+			var box := Rect2(tr.position.x + 6.0, tr.position.y + 5.0, 12.0, 12.0)
+			draw_rect(box, Color(0.05, 0.05, 0.07))
+			draw_rect(box, Color(0.85, 0.85, 0.75), false, 1.0)
+			if Settings.hide_messages:
+				draw_rect(box.grow(-3.0), Color(0.58, 0.78, 0.37))
+			_txt("NO MOSTRAR MENSAJES", Vector2(tr.position.x + 22.0, tr.position.y + 15.0), 10, Color(0.95, 0.92, 0.85), HORIZONTAL_ALIGNMENT_CENTER, tr.size.x - 22.0)
 		_txt("toca para volver", Vector2(pr.position.x, pr.end.y - 8.0), 9, Color(0.7, 0.7, 0.7, 0.6 + 0.4 * sin(_t * 4.0)), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
 	if _panel == "":
 		var tip: String = TIPS[int(_t / 6.0) % TIPS.size()]
 		var ta := clampf(minf(fmod(_t, 6.0), 6.0 - fmod(_t, 6.0)), 0.0, 1.0)
 		_txt(tip, Vector2(0, vs.y - 22.0), 10, Color(0.85, 0.82, 0.7, ta * 0.9), HORIZONTAL_ALIGNMENT_CENTER, vs.x)
-	_txt("v0.9 · Acto I–II", Vector2(0, vs.y - 6.0), 8, Color(0.6, 0.6, 0.6, 0.7), HORIZONTAL_ALIGNMENT_RIGHT, vs.x - 8.0)
+	_txt("v1.0 · Acto I–III", Vector2(0, vs.y - 6.0), 8, Color(0.6, 0.6, 0.6, 0.7), HORIZONTAL_ALIGNMENT_RIGHT, vs.x - 8.0)
 
 	# fundido al empezar
 	if _go_t >= 0.0:

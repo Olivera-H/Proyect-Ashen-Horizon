@@ -22,6 +22,7 @@ const ITEMS := {
 	"madera": {"name": "Madera", "desc": "Tablas y troncos. En la mesa de trabajo del refugio se fabrican cercas y barricadas.", "max": 10},
 	"cerca": {"name": "Cerca", "desc": "Colócala delante de ti (usar). Frena a los zombis un rato. Golpéala con tu arma de mano para recogerla.", "max": 6, "use": true},
 	"barricada": {"name": "Barricada", "desc": "Cubre 2 tiles (una puerta). Aguanta mucho más que una cerca. Golpéala con tu arma de mano para recogerla.", "max": 4, "use": true},
+	"bateria": {"name": "Batería de radio", "desc": "Pieza para reparar la radio del refugio (Acto III). Hacen falta 3.", "max": 3, "key": true},
 	"balas": {"name": "Balas", "desc": "Munición de la pistola.", "max": 18},
 	"cartuchos": {"name": "Cartuchos", "desc": "Munición de la escopeta.", "max": 8},
 	"tarjeta": {"name": "Tarjeta Horizonte", "desc": "Acceso de nivel 3. Abre la puerta del laboratorio.", "max": 1, "key": true},

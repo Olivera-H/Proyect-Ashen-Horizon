@@ -24,6 +24,7 @@ var _area := Rect2()
 var _lamp: PointLight2D
 var _lamp_pos := Vector2.ZERO
 var _night := 0.0
+var _redraw_t := 0.0
 var _flick := 0.0            # >0 mientras la luz parpadea
 var _next_flick := 6.0
 
@@ -80,7 +81,11 @@ func _process(delta: float) -> void:
 		_flick -= delta
 		e = 0.15 + 0.85 * float(sin(_t * 38.0) > 0.0) * (0.4 + 0.6 * randf())
 	_lamp.energy = _night * e * 0.95
-	queue_redraw()
+	_lamp.visible = _lamp.energy > 0.01
+	_redraw_t -= delta
+	if _redraw_t <= 0.0:   # el farol y los cultivos no necesitan redibujarse en cada fotograma
+		_redraw_t = 0.12
+		queue_redraw()
 	for p in plots:
 		if int(p["stage"]) in [1, 2]:
 			p["t"] += delta

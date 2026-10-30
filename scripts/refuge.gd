@@ -131,6 +131,7 @@ func _process(delta: float) -> void:
 	var e := (0.35 + 0.65 * _night) if gen_on else 0.0
 	e *= 0.94 + 0.06 * sin(_t * 23.0)
 	_gen_light.energy = e * 0.9
+	_gen_light.visible = e > 0.01
 	# luces de la casa: encienden a las 18:00 y se apagan a las 6:00; con el generador brillan mas
 	var want_k := 1.0 if (hour >= LAMP_ON or hour < LAMP_OFF) else 0.0
 	_lamp_k = move_toward(_lamp_k, want_k, delta * 0.8)
@@ -139,6 +140,9 @@ func _process(delta: float) -> void:
 		(l as PointLight2D).energy = lamp_e * (1.0 if gen_on else 0.9)
 		(l as PointLight2D).color = Color("ffe2b0") if gen_on else Color("ffc88a")
 	_door_light.energy = lamp_e * 0.8
+	_door_light.visible = lamp_e > 0.01
+	for l in _lamp_lights:
+		(l as PointLight2D).visible = lamp_e > 0.01
 	if player == null:
 		player = get_tree().get_first_node_in_group("player")
 	near = ""
@@ -327,10 +331,14 @@ class Prop extends Node2D:
 	var refuge: Refuge
 	var size := Vector2(16, 16)
 	var _t := 0.0
+	var _rd := 0.0
 
 	func _process(delta: float) -> void:
 		_t += delta
-		queue_redraw()
+		_rd -= delta
+		if kind == "generator" and refuge.gen_on or _rd <= 0.0:
+			_rd = 0.2
+			queue_redraw()
 
 	func _draw() -> void:
 		match kind:

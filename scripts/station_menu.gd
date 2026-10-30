@@ -10,6 +10,7 @@ var station := ""
 var _font: Font
 var _t := 0.0
 var _buttons: Array = []     # {rect, id}
+var _was_near := false
 var _bulk := false           # cofre: mover 1 unidad o todas
 var _last_press_ms := -1000
 var _last_press_pos := Vector2(-100, -100)
@@ -55,7 +56,10 @@ func _process(delta: float) -> void:
 	_t += delta
 	if open and not _can_show():
 		set_open(false)
-	queue_redraw()
+	var near_now: bool = _can_show() and refuge.near != ""
+	if open or near_now or _was_near:    # sin puesto cerca no hay nada que dibujar
+		queue_redraw()
+	_was_near = near_now
 
 
 func _input(event: InputEvent) -> void:

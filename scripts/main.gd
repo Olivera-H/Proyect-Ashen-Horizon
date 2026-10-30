@@ -260,12 +260,35 @@ func _process(delta: float) -> void:
 	if _state == "play":
 		_play_time += delta
 		_update_weather(delta)
-		_check_pickups()
+		_pickup_t -= delta
+		if _pickup_t <= 0.0:    # recoger objetos no hace falta comprobarlo en cada fotograma
+			_pickup_t = 0.06
+			_check_pickups()
 		_check_refuge(delta)
 		_check_goal()
 		_random_events(delta)
 	elif _end_t > 0.0:
 		_end_t -= delta
+	StreetProps.focus = player.global_position
+	_lod_t -= delta
+	if _lod_t <= 0.0:
+		_lod_t = 0.4
+		_update_zombie_lod()
+
+
+## Optimizacion: los zombis lejos de la pantalla se "duermen" (sin fisica, IA ni animacion)
+## y se despiertan al acercarte. Con histeresis para que no parpadeen en el borde.
+func _update_zombie_lod() -> void:
+	var pp := player.global_position
+	for z in get_tree().get_nodes_in_group("zombies"):
+		var d2: float = (z as Node2D).global_position.distance_squared_to(pp)
+		var asleep: bool = (z as Node).process_mode == Node.PROCESS_MODE_DISABLED
+		if not asleep and d2 > LOD_SLEEP_SQ:
+			(z as Node).process_mode = Node.PROCESS_MODE_DISABLED
+			(z as Node2D).visible = false
+		elif asleep and d2 < LOD_WAKE_SQ:
+			(z as Node).process_mode = Node.PROCESS_MODE_INHERIT
+			(z as Node2D).visible = true
 
 
 func _input(event: InputEvent) -> void:
@@ -397,6 +420,15 @@ func _check_refuge(delta: float) -> void:
 
 
 var _rain_snd := false
+const LOD_SLEEP_SQ := 600.0 * 600.0
+const LOD_WAKE_SQ := 520.0 * 520.0
+var _lod_t := 0.0
+var _pickup_t := 0.0
+const SIEGE_TIME := 100.0
+const SIEGE_WAVES := [[0.0, 14], [35.0, 16], [70.0, 18]]
+var _act3_t := 0.0
+var _siege_t := 0.0
+var _siege_wave := 0
 var _story := 0     # 0 radio, 1 tarjeta, 2 puerta lab abierta, 4 Acto II, 5 llave, 6 bunker abierto, 7 suero, 8 fin
 var _door_hint_t := 0.0
 var _radio_t := 6.0
@@ -419,7 +451,7 @@ func _near_door(r: Rect2) -> bool:
 
 func _update_story(delta: float) -> void:
 	var inv := player.inventory
-	hud.hint = "Investiga la zona en busca de la tarjeta de acceso" if _story == 0 and not inv.owns("tarjeta") else ""
+	hud.hint = _story_hint(inv)
 	_door_hint_t -= delta
 	match _story:
 		0:
@@ -480,18 +512,82 @@ func _update_story(delta: float) -> void:
 				hud.toast("Radio, Lena: «Vuelve al refugio, Mateo. Corre.»", 7.0)
 		7:
 			if refuge_rect.has_point(player.global_position) and inv.owns("suero"):
-				_story = 8
-				hud.toast("Lena te espera. El suero funciona… pero la llamada de la radio trae otra voz.", 8.0)
-				_state = "won"
-				_end_t = 4.0
-				hud.end_kind = "won"
+				_story = 9
+				_act3_t = 7.0
+				hud.toast("Lena te espera. El suero funciona… pero la radio trae otra voz.", 8.0)
+				hud.toast("ACTO III — «La otra voz»", 5.0)
+		9:
+			_act3_t -= delta
+			if _act3_t <= 0.0 and _act3_t > -100.0:
+				_act3_t = -1000.0
+				hud.toast("Radio, Lena: «Una voz desconocida repite tu nombre en una frecuencia vieja: Evacuación Aurora. Necesito 3 baterías para la radio: hay en la comisaría, el supermercado y un taller. Tráelas.»", 12.0)
+			if inv.count("bateria") >= 3 and refuge_rect.has_point(player.global_position):
+				_start_siege()
+		10:
+			_update_siege(delta)
 	if _story == 5 and _near_door(world.bunker_door_rect) and not inv.owns("llave") and _door_hint_t <= 0.0:
 		_door_hint_t = 6.0
 		Sfx.play("door_locked", -2.0)
 		hud.toast("Puerta blindada: requiere la llave del búnker H-7.", 4.0)
 
 
-func _spawn_horde(center: Vector2, n: int) -> void:
+func _story_hint(inv: Inventory) -> String:
+	match _story:
+		0:
+			return "Investiga la zona en busca de la tarjeta de acceso" if not inv.owns("tarjeta") else ""
+		1:
+			return "Ve al Laboratorio Horizonte, al este, con la tarjeta de acceso"
+		2:
+			return "Entra al laboratorio y llega a la terminal del fondo"
+		4:
+			return "Acto II: consigue la llave del búnker en la base militar (y una máscara antigás)"
+		5:
+			return "Llega al búnker H-7, en la Zona Cero (usa la máscara)"
+		6:
+			return "Llega a la terminal del fondo del búnker"
+		7:
+			return "Vuelve al refugio con el suero"
+		9:
+			var n := inv.count("bateria")
+			if n >= 3:
+				return "Lleva las 3 baterías al refugio para conectar la radio"
+			return "Acto III: busca 3 baterías de radio (%d/3): comisaría, supermercado y taller" % n
+		10:
+			return "Resiste en el refugio: la evacuación llega en %d s" % maxi(0, int(ceil(SIEGE_TIME - _siege_t)))
+	return ""
+
+
+## Acto III: la radio atrae a los infectados; hay que aguantar en el refugio hasta que llegue el helicoptero.
+## Durante el asedio los zombis ya no respetan la zona segura: cercas y barricadas ayudan.
+func _start_siege() -> void:
+	_story = 10
+	_siege_t = 0.0
+	_siege_wave = 0
+	player.inventory.remove("bateria", 3)
+	world.safe_rect = Rect2()
+	Sfx.play("alarm", -2.0, 0.0)
+	hud.toast("La radio vuelve a la vida. Una voz fría: «Sujeto M. Vargas, apague la transmisión.»", 7.0)
+	hud.toast("La señal atrae a los infectados. Resiste hasta que llegue la evacuación Aurora.", 7.0)
+
+
+func _update_siege(delta: float) -> void:
+	_siege_t += delta
+	if _siege_wave < SIEGE_WAVES.size() and _siege_t >= float(SIEGE_WAVES[_siege_wave][0]):
+		var n: int = SIEGE_WAVES[_siege_wave][1]
+		_siege_wave += 1
+		_spawn_horde(refuge_rect.get_center(), n, 230.0, 360.0)
+		Sfx.play("horde_rise", -2.0, 0.0)
+		hud.toast("Oleada %d de %d" % [_siege_wave, SIEGE_WAVES.size()], 3.0)
+	if _siege_t >= SIEGE_TIME:
+		_story = 11
+		world.safe_rect = refuge_rect
+		hud.toast("¡Se oyen rotores! El helicóptero Aurora aterriza en el refugio.", 8.0)
+		_state = "won"
+		_end_t = 4.0
+		hud.end_kind = "won"
+
+
+func _spawn_horde(center: Vector2, n: int, rmin := 90.0, rmax := 230.0) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var made := 0
@@ -499,7 +595,7 @@ func _spawn_horde(center: Vector2, n: int) -> void:
 	while made < n and guard < n * 20:
 		guard += 1
 		var ang := rng.randf() * TAU
-		var pos := center + Vector2(cos(ang), sin(ang)) * rng.randf_range(90.0, 230.0)
+		var pos := center + Vector2(cos(ang), sin(ang)) * rng.randf_range(rmin, rmax)
 		var t := world.to_tile(pos)
 		if t.x < 1 or t.y < 1 or t.x >= World.W - 1 or t.y >= World.H - 1:
 			continue

@@ -100,7 +100,10 @@ func setup(id: String) -> void:
 	add_child(shape)
 
 	sprite = AnimatedSprite2D.new()
-	var sheet := SpriteSheets.frames(char_id, SpriteSheets.HUMAN)
+	Settings.ensure()
+	var sheet := SpriteSheets.frames(Settings.skin, SpriteSheets.HUMAN)   # la skin elegida solo cambia el aspecto
+	if sheet == null:
+		sheet = SpriteSheets.frames(char_id, SpriteSheets.HUMAN)
 	if sheet != null:
 		sprite.sprite_frames = sheet
 		sprite.position = SpriteSheets.HUMAN_POS

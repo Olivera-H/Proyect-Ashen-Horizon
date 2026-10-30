@@ -16,6 +16,7 @@ var _confirm := ""          # "", "salir", "atascado"
 var _last_press_ms := -1000
 var _last_press_pos := Vector2(-100, -100)
 var _buttons: Array = []    # {rect, id}
+var _gear_shown := false
 
 
 func _ready() -> void:
@@ -64,7 +65,10 @@ func _process(delta: float) -> void:
 	_t += delta
 	if open and not _can_show():
 		set_open(false)
-	queue_redraw()
+	var gear := _can_show() and not get_tree().paused
+	if open or gear != _gear_shown:    # el engranaje es estatico: solo se redibuja al cambiar
+		_gear_shown = gear
+		queue_redraw()
 
 
 func _input(event: InputEvent) -> void:
@@ -133,6 +137,10 @@ func _drag(pos: Vector2) -> bool:
 
 func _press(id: String) -> void:
 	match id:
+		"mensajes":
+			Settings.hide_messages = not Settings.hide_messages
+			Settings.save()
+			Sfx.play("ui_click")
 		"continuar":
 			set_open(false)
 		"controles":
@@ -213,6 +221,16 @@ func _draw() -> void:
 		draw_rect(bar, Color(0.8, 0.8, 0.7), false, 1.0)
 		var kx := clampf(bar.position.x + bar.size.x * v - 3.0, bar.position.x, bar.end.x - 6.0)   # la perilla no se sale de la barra
 		draw_rect(Rect2(kx, bar.position.y - 3.0, 6.0, bar.size.y + 6.0), Color(0.95, 0.9, 0.72))
+	var tr := Rect2(pr.position.x + 40.0, pr.position.y + 168.0, pr.size.x - 80.0, 22.0)
+	_buttons.append({"rect": tr, "id": "mensajes"})
+	draw_rect(tr, Color(0.1, 0.1, 0.13, 0.95))
+	draw_rect(tr, Color(0.75, 0.7, 0.62, 0.8), false, 1.0)
+	var cb := Rect2(tr.position.x + 6.0, tr.position.y + 5.0, 12.0, 12.0)
+	draw_rect(cb, Color(0.05, 0.05, 0.07))
+	draw_rect(cb, Color(0.85, 0.85, 0.75), false, 1.0)
+	if Settings.hide_messages:
+		draw_rect(cb.grow(-3.0), Color(0.58, 0.78, 0.37))
+	_txt("NO MOSTRAR MENSAJES", Vector2(tr.position.x + 22.0, tr.position.y + 15.0), 10, Color(0.95, 0.92, 0.85), HORIZONTAL_ALIGNMENT_CENTER, tr.size.x - 22.0)
 	var items := [
 		["continuar", "CONTINUAR", Color(0.12, 0.25, 0.1, 0.95)],
 		["controles", "CONTROLES", Color(0.1, 0.1, 0.13, 0.95)],

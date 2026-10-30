@@ -60,6 +60,7 @@ var _font: Font
 var _base_tex: ImageTexture
 var _fog_img: Image
 var _fog_tex: ImageTexture
+var _redraw_acc := 0.0
 var _last_tile := Vector2i(-9999, -9999)
 var _zoom_i := 1
 var _view_tiles := 64.0
@@ -301,7 +302,10 @@ func _process(delta: float) -> void:
 		if _trail.size() > TRAIL_MAX:
 			_trail.pop_front()
 
-	queue_redraw()
+	_redraw_acc += delta
+	if _redraw_acc >= 0.033:   # el minimapa no necesita mas de ~30 imagenes por segundo
+		_redraw_acc = 0.0
+		queue_redraw()
 	_view.queue_redraw()
 
 

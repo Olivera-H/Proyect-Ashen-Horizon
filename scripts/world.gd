@@ -705,11 +705,19 @@ func _place_civic_loot() -> void:
 		"apartamentos": ["food", "scrap", "bandage", "balas"],
 		"taller": ["madera", "madera", "madera", "scrap", "combustible"],
 	}
+	var bat_left := {"comisaria": true, "supermercado": true}   # baterias de radio del Acto III
 	for b in buildings:
 		var k: String = b["kind"]
 		if table.has(k):
 			for it in table[k]:
 				_loot_in(b, it)
+		if bat_left.has(k):
+			_loot_in(b, "bateria")
+			bat_left.erase(k)
+	for b in buildings:   # tercera bateria: un taller del oeste
+		if b["kind"] == "taller" and (b["rect"] as Rect2i).position.x < LAB_X:
+			_loot_in(b, "bateria")
+			break
 	if not base_b.is_empty():
 		_loot_in(base_b, "mascara")
 		_loot_in(base_b, "llave")   # unico lugar donde aparece la mascara antigas

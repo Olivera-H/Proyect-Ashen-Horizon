@@ -58,6 +58,9 @@ func setup(p: Player, w: World, g: Array) -> void:
 
 
 func toast(text: String, seconds: float = 3.0) -> void:
+	Settings.ensure()
+	if Settings.hide_messages:   # opcion "No mostrar mensajes": la mision principal sigue en `hint`
+		return
 	_toasts.append([text, seconds, seconds])
 	while _toasts.size() > 3:
 		_toasts.pop_front()
@@ -219,8 +222,8 @@ func _draw_end(vs: Vector2) -> void:
 	else:
 		draw_rect(Rect2(Vector2.ZERO, vs), Color(0, 0, 0, 0.62 * fade))
 		var mid := vs.y * 0.42
-		_txt_sh(Vector2(0, mid), "SUERO H-7", 22, Color(0.945, 0.769, 0.059, fade), vs.x)
-		_txt_sh(Vector2(0, mid + 20.0), "Fin del Acto II · Suero H-7  —  Acto III: «La otra voz»", 13, Color(0.95, 0.95, 0.95, fade), vs.x)
+		_txt_sh(Vector2(0, mid), "LA OTRA VOZ", 22, Color(0.945, 0.769, 0.059, fade), vs.x)
+		_txt_sh(Vector2(0, mid + 20.0), "Fin del Acto III · el helicóptero Aurora aterriza… pero la historia continúa", 13, Color(0.95, 0.95, 0.95, fade), vs.x)
 		_txt_sh(Vector2(0, mid + 36.0), "Toca la pantalla para seguir explorando", 12, Color(0.8, 0.8, 0.85, fade), vs.x)
 
 

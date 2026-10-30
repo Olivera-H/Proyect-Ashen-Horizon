@@ -223,3 +223,9 @@ Luces interiores: se encienden de **18:00 a 6:00**; con el generador encendido b
 
 ### APK de Android
 Ver `docs/APK.md` (workflow `.github/workflows/android.yml`, se lanza a mano desde Actions y publica el APK en Releases).
+
+### Acto III · «La otra voz», skins y ajustes
+- **Acto III**: tras entregar el suero, busca 3 **baterías de radio** (comisaría, supermercado y un taller del oeste) y llévalas al refugio. La radio atrae a los infectados: **asedio de 100 s** con 3 oleadas (14, 16 y 18) donde los zombis ya no respetan la zona segura; usa cercas y barricadas. Al terminar llega el helicóptero Aurora (final del Acto III). La misión principal siempre se ve abajo (`hud.hint`).
+- **Skins** (pantalla de inicio, flechas ‹ ›): Mateo, Lena y 5 nuevas (soldado, médica, mecánico, motero, granjero). Solo cambian el aspecto; se guardan en `user://game_settings.cfg`. Hojas generadas con `python3 tools/gen_skins.py`.
+- **No mostrar mensajes** (Configuración, en el inicio y en la pausa): oculta los avisos emergentes; la misión principal no se oculta.
+- **Optimización**: marcas de las calles en trozos de 256 px, luces apagadas de día o lejos, zombis lejanos "dormidos" (se despiertan a ~520 px), menos redibujados (minimapa a ~30 Hz, menús y farol solo cuando hace falta).
