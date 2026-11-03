@@ -15,7 +15,7 @@ const NEAR_R := 30.0
 const MED_CAP := [3, 6, 10]
 const MED_HEAL := [40.0, 50.0, 60.0]
 const MED_COST := [0, 6, 10]   # chatarra para llegar a cada nivel
-const CHEST_CAP := 60
+const CHEST_CAP := 120
 const CHEST_ITEMS := ["bandage", "food", "water", "scrap", "madera", "semillas", "combustible", "balas", "cartuchos"]
 ## Lamparas del interior (tiles desde la esquina de la casa); coinciden con "lamps" de tools/gen_buildings.py.
 const LAMPS := [Vector2(3.6, 5.4), Vector2(9.6, 5.4), Vector2(6.6, 8.7)]
