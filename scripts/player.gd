@@ -81,6 +81,7 @@ func _give_starting_items() -> void:
 
 
 func setup(id: String) -> void:
+	inventory.set_bag_size(Pets.bag_size())   # 15, o 18 con mascota equipada
 	_give_starting_items()
 	char_id = id
 	data = Characters.get_data(id)
@@ -145,7 +146,7 @@ func noise_radius() -> float:
 		base = 110.0 if running else 38.0
 	if _spike_t > 0.0:
 		base = maxf(base, _spike_radius)
-	return base * (0.65 if has_skill("sigilo") else 1.0)
+	return base * (0.65 if has_skill("sigilo") else 1.0) * Pets.buff("noise")
 
 
 func make_noise(radius: float, duration: float) -> void:
@@ -171,6 +172,7 @@ func _physics_process(delta: float) -> void:
 		var speed: float = data["run_speed"] if running else data["walk_speed"]
 		if has_skill("pies"):
 			speed *= 1.08
+		speed *= Pets.buff("speed")
 		if _attack_t > 0.0:
 			speed *= 0.5
 		velocity = dir * speed
@@ -227,13 +229,14 @@ func _update_stats(delta: float) -> void:
 		var regen: float = data["stamina_regen"]
 		if has_skill("resistencia"):
 			regen *= 1.4
+		regen *= Pets.buff("stamina")
 		if hunger < 20.0 or thirst < 20.0:
 			regen *= 0.5
 		stamina = minf(max_stamina, stamina + regen * delta)
 		if exhausted and stamina >= max_stamina * 0.25:
 			exhausted = false
 	# hambre y sed
-	var drain := (0.6 if has_skill("estomago") else 1.0) * drain_mult
+	var drain := (0.6 if has_skill("estomago") else 1.0) * drain_mult * Pets.buff("drain")
 	hunger = maxf(0.0, hunger - 0.12 * delta * drain)
 	thirst = maxf(0.0, thirst - 0.18 * delta * drain)
 	if hunger <= 0.0 or thirst <= 0.0:
@@ -282,6 +285,7 @@ func _try_attack() -> void:
 	var dmg: float = (float(def["dmg"]) if armed else 6.0) * float(data["melee_damage"])
 	if has_skill("golpe"):
 		dmg *= 1.25
+	dmg *= Pets.buff("melee")
 	var reach: float = float(def["range"])
 	var hit_any := false
 	for z in get_tree().get_nodes_in_group("zombies"):

@@ -229,3 +229,16 @@ Ver `docs/APK.md` (workflow `.github/workflows/android.yml`, se lanza a mano des
 - **Skins** (pantalla de inicio, flechas ‹ ›): Mateo, Lena y 5 nuevas (soldado, médica, mecánico, motero, granjero). Solo cambian el aspecto; se guardan en `user://game_settings.cfg`. Hojas generadas con `python3 tools/gen_skins.py`.
 - **No mostrar mensajes** (Configuración, en el inicio y en la pausa): oculta los avisos emergentes; la misión principal no se oculta.
 - **Optimización**: marcas de las calles en trozos de 256 px, luces apagadas de día o lejos, zombis lejanos "dormidos" (se despiertan a ~520 px), menos redibujados (minimapa a ~30 Hz, menús y farol solo cuando hace falta).
+
+### Mascotas premium
+En el inicio, botón **MASCOTAS**: cuatro compañeros animados que te siguen por el mapa (`scripts/pet.gd`), cada uno con su nombre y sus buffs bajo la tarjeta. **Equipar cualquiera amplía la mochila de 15 a 18 espacios.**
+
+| Mascota | Buffs |
+|---|---|
+| Ceniza (perro lobo) | recogida +60% de radio · golpes +10% |
+| Sombra (gato) | 25% menos ruido · luz tenue |
+| Presagio (cuervo, vuela) | estamina +30% · hambre/sed 15% más lentas |
+| Ámbar (zorro) | velocidad +10% · luz cálida de noche |
+
+Datos en `scripts/pets.gd`, derechos de compra en `scripts/premium.gd` (modo **DEMO** gratuito hasta conectar una tienda real; ver `docs/MONETIZACION.md`), sprites con `python3 tools/gen_pets.py`.
+También: brillos de objetos con un solo pulso compartido y percepción de zombis desfasada (~7 Hz).

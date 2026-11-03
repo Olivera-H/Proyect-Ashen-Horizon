@@ -126,6 +126,10 @@ func _spawn_player() -> void:
 	player.setup(character_id)
 	player.position = world.start_pos
 	ents.add_child(player)
+	if Pets.equipped():
+		var pet := Pet.new()
+		pet.setup(player, world)
+		ents.add_child(pet)
 	var sz := world.size_px()
 	player.camera.limit_left = 0
 	player.camera.limit_top = 0
@@ -181,10 +185,8 @@ func _add_pickup(pos: Vector2, kind: String, text: String) -> void:
 	glow.material = mat
 	glow.modulate = Color(1.0, 0.92, 0.6, 0.55) if kind != "note" else Color(0.7, 0.9, 1.0, 0.5)
 	s.add_child(glow)
-	var tw := s.create_tween().set_loops()
-	tw.tween_property(glow, "scale", Vector2(1.25, 1.25), 0.9).from(Vector2(0.8, 0.8)).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(glow, "scale", Vector2(0.8, 0.8), 0.9).set_trans(Tween.TRANS_SINE)
-	_pickups.append({"node": s, "kind": kind, "text": text})
+	glow.scale = Vector2(1.0, 1.0)
+	_pickups.append({"node": s, "kind": kind, "text": text, "glow": glow})
 
 
 var _glow_tex: Texture2D
@@ -264,6 +266,7 @@ func _process(delta: float) -> void:
 		if _pickup_t <= 0.0:    # recoger objetos no hace falta comprobarlo en cada fotograma
 			_pickup_t = 0.06
 			_check_pickups()
+			_pulse_glows()
 		_check_refuge(delta)
 		_check_goal()
 		_random_events(delta)
@@ -366,12 +369,27 @@ func _update_weather(delta: float) -> void:
 		player.environmental_damage(dmg * delta)
 
 
+## Un solo pulso compartido para todos los brillos (antes: un Tween por objeto) y solo los cercanos a camara.
+func _pulse_glows() -> void:
+	var pp := player.global_position
+	var k := 1.025 + 0.225 * sin(Time.get_ticks_msec() * 0.0035)
+	var sc := Vector2(k, k)
+	for p in _pickups:
+		var node: Sprite2D = p["node"]
+		var near := node.position.distance_squared_to(pp) < 90000.0
+		var g: Sprite2D = p["glow"]
+		g.visible = near
+		if near:
+			g.scale = sc
+
+
 func _check_pickups() -> void:
 	var pp := player.global_position
+	var reach := PICKUP_RADIUS * Pets.buff("pickup")
 	for i in range(_pickups.size() - 1, -1, -1):
 		var p: Dictionary = _pickups[i]
 		var node: Sprite2D = p["node"]
-		if node.position.distance_to(pp) > PICKUP_RADIUS:
+		if node.position.distance_to(pp) > reach:
 			continue
 		var kind: String = p["kind"]
 		var taken := false

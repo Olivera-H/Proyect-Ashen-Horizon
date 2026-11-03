@@ -26,6 +26,10 @@ var _sfx_volume := 1.0
 var _skin_preview: AnimatedSprite2D
 var _skin_mode := "idle_down"
 var _skin_timer := 0.0
+var _pet_sprites: Array = []   # AnimatedSprite2D de la vitrina de mascotas
+var _pets_rect := Rect2()
+var _pet_msg := ""
+var _pet_msg_t := 0.0
 
 
 func _ready() -> void:
@@ -44,6 +48,7 @@ func _ready() -> void:
 		_skyline.append([x, w, rng.randf_range(0.08, 0.28), rng.randi() % 3])
 		x += w * rng.randf_range(0.7, 1.1)
 	_create_skin_preview()
+	_create_pet_previews()
 	for i in 55:
 		_ash.append([rng.randf(), rng.randf(), rng.randf_range(0.01, 0.035), rng.randf_range(0.6, 1.6), rng.randf()])
 	for i in 4:
@@ -150,8 +155,42 @@ func _start_audio() -> void:
 	Sfx.loop("rain_loop", true, -12.0)
 
 
+func _create_pet_previews() -> void:
+	for i in Pets.LIST.size():
+		var sp := AnimatedSprite2D.new()
+		sp.sprite_frames = Pet.frames_for(Pets.LIST[i]["id"])
+		sp.scale = Vector2(3, 3)
+		sp.visible = false
+		sp.play("idle_down")
+		add_child(sp)
+		_pet_sprites.append(sp)
+
+
+func _pet_card(i: int) -> Rect2:
+	return Rect2(_pets_rect.position.x + 8.0 + i * 146.0, _pets_rect.position.y + 40.0, 140.0, 200.0)
+
+
+func _update_pet_previews() -> void:
+	var show := _panel == "mascotas"
+	for i in _pet_sprites.size():
+		var sp: AnimatedSprite2D = _pet_sprites[i]
+		sp.visible = show
+		if not show:
+			continue
+		var card := _pet_card(i)
+		sp.position = card.position + Vector2(card.size.x * 0.5, 50.0)
+		# ciclo de demostracion: quieta, camina de lado, camina de frente
+		var phase := int(_t / 2.5 + i * 0.7) % 3
+		var want: String = ["idle_down", "walk_side", "walk_down"][phase]
+		if sp.animation != want:
+			sp.play(want)
+		sp.flip_h = false
+
+
 func _process(delta: float) -> void:
 	_t += delta
+	_pet_msg_t = maxf(0.0, _pet_msg_t - delta)
+	_update_pet_previews()
 	_skin_timer += delta
 	if _skin_preview != null:
 		_skin_preview.visible = _panel == ""
@@ -207,6 +246,8 @@ func _input(event: InputEvent) -> void:
 		if (b["rect"] as Rect2).has_point(pos):
 			_press(b["id"])
 			return
+	if _panel == "mascotas" and _pets_rect.has_point(pos):
+		return
 	if _panel != "":
 		_press("volver")
 
@@ -216,9 +257,28 @@ func _press(id: String) -> void:
 		"jugar":
 			Sfx.play("ui_start")
 			_go_t = 0.0
-		"controles", "creditos", "configuracion":
+		"controles", "creditos", "configuracion", "mascotas":
 			Sfx.play("ui_click")
 			_panel = id
+		"pet_unequip":
+			Settings.pet = ""
+			Settings.save()
+			Sfx.play("ui_click")
+		_ when id.begins_with("pet_equip_"):
+			Settings.pet = id.trim_prefix("pet_equip_")
+			Settings.save()
+			Sfx.play("ui_start", -6.0)
+		_ when id.begins_with("pet_buy_"):
+			var pid := id.trim_prefix("pet_buy_")
+			if Premium.purchase(pid):
+				Settings.pet = pid
+				Settings.save()
+				Sfx.play("ui_start", -4.0)
+				_pet_msg = "%s DESBLOQUEADA Y EQUIPADA%s" % [String(Pets.get_def(pid)["name"]), " (DEMO)" if Premium.is_demo() else ""]
+			else:
+				Sfx.play("ui_close", -4.0)
+				_pet_msg = "La tienda no está disponible ahora mismo."
+			_pet_msg_t = 4.0
 		"skin_prev":
 			_change_skin(-1)
 		"skin_next":
@@ -230,6 +290,74 @@ func _press(id: String) -> void:
 		"volver":
 			Sfx.play("ui_close", -4.0)
 			_panel = ""
+
+
+## Vitrina de mascotas premium: nombre y buffs bajo cada una, con boton para comprar/equipar.
+func _draw_pets(vs: Vector2) -> void:
+	_pets_rect = Rect2(vs.x * 0.5 - 300.0, 14.0, 600.0, vs.y - 28.0)
+	var pr := _pets_rect
+	var gold := Color(1.0, 0.82, 0.3)
+	draw_colored_polygon(_chamfer(pr, 10.0), Color(0.03, 0.035, 0.05, 0.96))
+	draw_rect(Rect2(pr.position.x + 10.0, pr.position.y, pr.size.x - 20.0, 3.0), gold)
+	_brackets(pr.grow(2.0), 14.0, Color(1.0, 0.82, 0.3, 0.85))
+	_txt("MASCOTAS PREMIUM", Vector2(pr.position.x, pr.position.y + 22.0), 16, Color(0.98, 0.93, 0.78), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+	_txt("Te siguen por el mapa · cada una da un buff · equipar una amplía la mochila de 15 a 18", Vector2(pr.position.x, pr.position.y + 34.0), 8, Color(0.72, 0.8, 0.66), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+	for i in Pets.LIST.size():
+		var d: Dictionary = Pets.LIST[i]
+		var card := _pet_card(i)
+		var own := Premium.owns(String(d["id"]))
+		var on := Settings.pet == String(d["id"]) and own
+		var accent: Color = d["color"]
+		draw_colored_polygon(_chamfer(card, 7.0), Color(0.07, 0.08, 0.1, 0.95))
+		draw_polyline(PackedVector2Array(_chamfer(card, 7.0) + PackedVector2Array([_chamfer(card, 7.0)[0]])), gold if on else Color(0.45, 0.48, 0.44, 0.8), 2.0 if on else 1.0)
+		draw_rect(Rect2(card.position.x + 7.0, card.position.y, card.size.x - 14.0, 2.0), accent)
+		# peana con luz
+		var fc := card.position + Vector2(card.size.x * 0.5, 66.0)
+		draw_colored_polygon(PackedVector2Array([fc + Vector2(-6.0, -58.0), fc + Vector2(6.0, -58.0), fc + Vector2(34.0, 4.0), fc + Vector2(-34.0, 4.0)]), Color(accent.r, accent.g, accent.b, 0.07))
+		for ei in 3:
+			draw_rect(Rect2(fc.x - 22.0 + ei * 3.0, fc.y - 1.0 + ei * 1.5, 44.0 - ei * 6.0, 2.0), Color(0, 0, 0, 0.3))
+		_txt(String(d["name"]), card.position + Vector2(0, 94.0), 13, Color(0.97, 0.93, 0.82), HORIZONTAL_ALIGNMENT_CENTER, card.size.x)
+		_txt(String(d["kind"]), card.position + Vector2(0, 105.0), 8, accent, HORIZONTAL_ALIGNMENT_CENTER, card.size.x)
+		var by2 := card.position.y + 110.0
+		for bf in d["buffs"]:
+			draw_rect(Rect2(card.position.x + 7.0, by2 + 3.0, 3.0, 3.0), accent)
+			draw_multiline_string(_font, Vector2(card.position.x + 13.0, by2 + 8.0), String(bf), HORIZONTAL_ALIGNMENT_LEFT, card.size.x - 19.0, 8, 4, Color(0.86, 0.86, 0.8))
+			by2 += 34.0
+		# boton de accion
+		var br := Rect2(card.position.x + 8.0, card.end.y - 28.0, card.size.x - 16.0, 22.0)
+		var id := ""
+		var label := ""
+		var bcol := Color(0.12, 0.14, 0.16)
+		if on:
+			id = "pet_unequip"
+			label = "EQUIPADA ✓ · QUITAR"
+			bcol = Color(0.16, 0.3, 0.14)
+		elif own:
+			id = "pet_equip_" + String(d["id"])
+			label = "EQUIPAR"
+			bcol = Color(0.12, 0.24, 0.3)
+		else:
+			id = "pet_buy_" + String(d["id"])
+			label = "COMPRAR " + String(d["price"])
+			bcol = Color(0.34, 0.24, 0.05)
+		_buttons.append({"rect": br, "id": id})
+		draw_colored_polygon(_chamfer(br, 4.0), bcol)
+		draw_rect(Rect2(br.position.x + 4.0, br.position.y, br.size.x - 8.0, 1.0), Color(1, 1, 1, 0.18))
+		_txt(label, br.position + Vector2(0, 15.0), 10, Color(1.0, 0.95, 0.78) if not own else Color(0.92, 0.98, 0.9), HORIZONTAL_ALIGNMENT_CENTER, br.size.x)
+		if not own:
+			_txt("PREMIUM", card.position + Vector2(card.size.x - 52.0, 13.0), 7, gold, HORIZONTAL_ALIGNMENT_RIGHT, 48.0)
+	# pie: estado de la mochila, aviso demo y boton volver
+	var bag := "MOCHILA: %d ESPACIOS" % Pets.bag_size()
+	_txt(bag, Vector2(pr.position.x + 14.0, pr.end.y - 20.0), 10, gold if Pets.equipped() else Color(0.7, 0.7, 0.66), HORIZONTAL_ALIGNMENT_LEFT, 200.0)
+	if Premium.is_demo():
+		_txt("MODO DEMO: desbloqueo gratuito de prueba (sin cobro real)", Vector2(pr.position.x + 14.0, pr.end.y - 8.0), 8, Color(0.9, 0.55, 0.4, 0.9), HORIZONTAL_ALIGNMENT_LEFT, 330.0)
+	if _pet_msg_t > 0.0:
+		_txt(_pet_msg, Vector2(pr.position.x, pr.position.y + 252.0), 11, Color(0.98, 0.9, 0.5, minf(1.0, _pet_msg_t)), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+	var vr := Rect2(pr.end.x - 120.0, pr.end.y - 32.0, 106.0, 24.0)
+	_buttons.append({"rect": vr, "id": "volver"})
+	draw_colored_polygon(_chamfer(vr, 5.0), Color(0.18, 0.1, 0.09))
+	draw_polyline(PackedVector2Array(_chamfer(vr, 5.0) + PackedVector2Array([_chamfer(vr, 5.0)[0]])), Color(0.8, 0.74, 0.64, 0.8), 1.0)
+	_txt("VOLVER", vr.position + Vector2(0, 16.0), 11, Color(0.97, 0.94, 0.87), HORIZONTAL_ALIGNMENT_CENTER, vr.size.x)
 
 
 ## Rectangulo con las esquinas cortadas (estilo consola militar).
@@ -411,11 +539,11 @@ func _draw() -> void:
 			var d := -1.0 if side == 0 else 1.0
 			draw_colored_polygon(PackedVector2Array([c + Vector2(5.0 * d, 0), c + Vector2(-4.0 * d, -9), c + Vector2(-4.0 * d, 9)]), Color(0.9, 0.88, 0.7))
 		var bw := col_w
-		var bh := 24.0
-		var by := vs.y * 0.52
-		var items := [["jugar", "JUGAR"], ["controles", "CONTROLES"], ["configuracion", "CONFIGURACIÓN"], ["creditos", "CRÉDITOS"]]
+		var bh := 22.0
+		var by := vs.y * 0.45
+		var items := [["jugar", "JUGAR"], ["mascotas", "MASCOTAS"], ["controles", "CONTROLES"], ["configuracion", "CONFIGURACIÓN"], ["creditos", "CRÉDITOS"]]
 		for i in items.size():
-			var r := Rect2(col_x, by + i * (bh + 8.0), bw, bh)
+			var r := Rect2(col_x, by + i * (bh + 6.0), bw, bh)
 			_buttons.append({"rect": r, "id": items[i][0]})
 			var pulse := 0.5 + 0.5 * sin(_t * 3.0) if i == 0 else 0.0
 			var fill := Color(0.09, 0.095, 0.115, 0.88).lerp(Color(0.5, 0.1, 0.07, 0.94), pulse * 0.85 if i == 0 else 0.0)
@@ -426,22 +554,33 @@ func _draw() -> void:
 			# icono a la izquierda
 			var ic := Vector2(r.position.x + 20.0, r.position.y + bh * 0.5)
 			var icol := Color(0.95, 0.88, 0.75, 0.95)
-			match int(i):
-				0:   # jugar: triangulo animado
+			match String(items[i][0]):
+				"jugar":   # jugar: triangulo animado
 					var sh := 1.5 * sin(_t * 5.0)
 					draw_colored_polygon(PackedVector2Array([ic + Vector2(-4.0 + sh, -6.0), ic + Vector2(6.0 + sh, 0.0), ic + Vector2(-4.0 + sh, 6.0)]), Color(1.0, 0.5, 0.35))
-				1:   # controles: cruceta
+				"mascotas":   # huella de pata con aura dorada
+					var gold := Color(1.0, 0.82, 0.3)
+					draw_circle(ic + Vector2(0, 2.5), 3.6, gold)
+					for pk in 4:
+						draw_circle(ic + Vector2(-5.0 + pk * 3.3, -3.2 - (1.5 if pk in [1, 2] else 0.0)), 1.5, gold)
+				"controles":   # controles: cruceta
 					draw_rect(Rect2(ic.x - 1.5, ic.y - 6.0, 3.0, 12.0), icol)
 					draw_rect(Rect2(ic.x - 6.0, ic.y - 1.5, 12.0, 3.0), icol)
-				2:   # configuracion: sliders
+				"configuracion":   # configuracion: sliders
 					for k in 3:
 						draw_rect(Rect2(ic.x - 6.0, ic.y - 5.0 + k * 5.0, 12.0, 1.5), icol)
 						draw_rect(Rect2(ic.x - 4.0 + k * 3.5, ic.y - 6.5 + k * 5.0, 2.5, 4.5), Color(0.62, 0.8, 0.48))
 				_:   # creditos: estrella
 					draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -6), ic + Vector2(2, -1.5), ic + Vector2(6, -1), ic + Vector2(3, 2), ic + Vector2(4, 6), ic + Vector2(0, 3.5), ic + Vector2(-4, 6), ic + Vector2(-3, 2), ic + Vector2(-6, -1), ic + Vector2(-2, -1.5)]), icol)
+			if String(items[i][0]) == "mascotas":
+				var pc := Color(1.0, 0.82, 0.3)
+				_txt("PREMIUM", Vector2(r.end.x - 52.0, r.position.y + 7.0), 7, pc, HORIZONTAL_ALIGNMENT_RIGHT, 48.0)
+				draw_rect(Rect2(r.position.x + 2.0, r.position.y + 5.0, 3.0, bh - 10.0), pc)
 			if i == 0 and fmod(_t, 1.0) < 0.6:
 				_txt(">", Vector2(r.end.x - 20.0, r.position.y + 17.0), 14, Color(0.95, 0.4, 0.3))
 			_txt(items[i][1], Vector2(r.position.x + 12.0, r.position.y + 17.0), 14, Color(0.97, 0.94, 0.87), HORIZONTAL_ALIGNMENT_CENTER, bw - 12.0)
+	elif _panel == "mascotas":
+		_draw_pets(vs)
 	else:
 		var pr := Rect2(cx - 190, vs.y * 0.36, 380, vs.y * 0.58)
 		draw_rect(pr, Color(0.03, 0.03, 0.04, 0.92))

@@ -17,6 +17,8 @@ const SKINS := [
 
 static var skin := "mateo"
 static var hide_messages := false
+## id de la mascota equipada ("" = ninguna)
+static var pet := ""
 static var _loaded := false
 
 
@@ -29,6 +31,7 @@ static func ensure() -> void:
 		return
 	skin = str(cfg.get_value("game", "skin", "mateo"))
 	hide_messages = bool(cfg.get_value("game", "hide_messages", false))
+	pet = str(cfg.get_value("game", "pet", ""))
 	if skin_index() < 0:
 		skin = "mateo"
 
@@ -37,6 +40,7 @@ static func save() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("game", "skin", skin)
 	cfg.set_value("game", "hide_messages", hide_messages)
+	cfg.set_value("game", "pet", pet)
 	cfg.save(PATH)
 
 

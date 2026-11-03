@@ -9,7 +9,7 @@ extends Control
 const SLOT := 24.0
 const GAP := 3.0
 const PAD := 8.0
-const GRID_COLS := 5
+const GRID_COLS := 6
 const FONT_S := 9
 
 var player: Player
@@ -144,6 +144,9 @@ func _tap_slot(i: int) -> void:
 	if not open:
 		_use(i)
 		return
+	if not inv.usable(i) and inv.slots[i] == null:
+		player.toast.emit("Casilla bloqueada: equipa una mascota premium (+3 espacios).")
+		return
 	if selected == -1:
 		if inv.slots[i] != null:
 			selected = i
@@ -188,7 +191,7 @@ func _press_button(action: String) -> void:
 			inv.move(selected, target)
 			selected = -1
 		"unequip":
-			for k in range(Inventory.BAG_START, Inventory.SKILL_START):
+			for k in range(Inventory.BAG_START, Inventory.BAG_START + inv.bag_size):
 				if inv.slots[k] == null:
 					inv.move(selected, k)
 					selected = -1
@@ -245,6 +248,15 @@ func _draw_slot(i: int) -> void:
 			draw_rect(Rect2(r.position.x + 3.0, r.position.y + SLOT - 5.0, (SLOT - 6.0) * frac, 2.0), Color("b8bcc4") if frac > 0.25 else Color("d64545"))
 		if int(s["n"]) > 1:
 			_txt(r.position + Vector2(0, SLOT - 2.0), str(int(s["n"])), 8, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 2.0)
+	if kind == "bag" and not inv.usable(i):
+		draw_rect(Rect2(r.position + Vector2(1, 1), Vector2(SLOT - 2.0, SLOT - 2.0)), Color(0.02, 0.02, 0.05, 0.72))
+		if s == null:
+			# candado pixel
+			var c := r.position + Vector2(SLOT * 0.5, SLOT * 0.5)
+			draw_rect(Rect2(c + Vector2(-4, -1), Vector2(8, 6)), Color("8a7a3a"))
+			draw_rect(Rect2(c + Vector2(-3, -5), Vector2(1, 4)), Color("b8a24a"))
+			draw_rect(Rect2(c + Vector2(2, -5), Vector2(1, 4)), Color("b8a24a"))
+			draw_rect(Rect2(c + Vector2(-3, -6), Vector2(6, 1)), Color("b8a24a"))
 	if i == selected:
 		draw_texture(_tex_sel, r.position)
 	if kind == "hotbar":

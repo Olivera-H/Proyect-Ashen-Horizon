@@ -6,11 +6,15 @@ extends RefCounted
 signal changed
 
 const HOTBAR := 3
-const BAG := 15
+const BAG_BASE := 15            # mochila normal
+const BAG := 18                 # tamaño maximo (con mascota equipada: Pets.BAG_BONUS)
 const SKILL_SLOTS := 3
 const TOTAL := HOTBAR + BAG + SKILL_SLOTS
 const BAG_START := HOTBAR
 const SKILL_START := HOTBAR + BAG
+
+## Casillas de mochila usables ahora (15, o 18 con mascota equipada).
+var bag_size := BAG_BASE
 
 var slots: Array = []
 
@@ -18,6 +22,33 @@ var slots: Array = []
 func _init() -> void:
 	slots.resize(TOTAL)
 	slots.fill(null)
+
+
+## true si la casilla existe y se puede usar (las 3 ultimas de la mochila exigen mascota).
+func usable(i: int) -> bool:
+	if i >= BAG_START and i < SKILL_START:
+		return i < BAG_START + bag_size
+	return true
+
+
+## Cambia el tamaño de mochila. Al quitar la mascota, lo que haya en las casillas extra
+## se recoloca en huecos libres; si no cabe, se queda en la casilla (no se pierde) pero
+## bloqueada hasta volver a equipar.
+func set_bag_size(n: int) -> void:
+	if n == bag_size:
+		return
+	bag_size = n
+	if n < BAG:
+		for i in range(BAG_START + n, SKILL_START):
+			var s = slots[i]
+			if s == null:
+				continue
+			for j in range(0, BAG_START + n):
+				if slots[j] == null and accepts(j, s["id"]):
+					slots[j] = s
+					slots[i] = null
+					break
+	changed.emit()
 
 
 static func kind_of(i: int) -> String:
@@ -63,9 +94,9 @@ func add(id: String, n: int = 1, durability: float = -1.0) -> int:
 	var maxn := ItemDefs.max_stack(id)
 	var order: Array = []
 	if ItemDefs.is_skill(id):
-		order = range(BAG_START, SKILL_START)
+		order = range(BAG_START, BAG_START + bag_size)
 	else:
-		order = range(0, SKILL_START)
+		order = range(0, BAG_START + bag_size)
 	for i in order:
 		if n <= 0:
 			break
@@ -128,7 +159,7 @@ func move(a: int, b: int) -> bool:
 		return false
 	var sa = slots[a]
 	var sb = slots[b]
-	if not accepts(b, sa["id"]):
+	if not usable(b) or not accepts(b, sa["id"]):
 		return false
 	if sb != null and not accepts(a, sb["id"]):
 		return false

@@ -156,7 +156,9 @@ func _physics_process(delta: float) -> void:
 	if player_safe and state != State.WANDER:
 		state = State.WANDER
 		_dir = Vector2.ZERO
-	if not player.dead and not player_safe:
+	_perceive_t -= delta
+	if _perceive_t <= 0.0 and not player.dead and not player_safe:
+		_perceive_t = 0.12 + randf() * 0.06   # ~7 Hz, desfasado entre zombis (la vista usa un rayo fisico)
 		_perceive()
 	var speed := 0.0
 	match state:
@@ -183,6 +185,9 @@ func _desired_velocity(speed: float) -> Vector2:
 	return _dir * speed
 
 
+var _perceive_t := randf() * 0.15
+
+
 func _perceive() -> void:
 	var to_p := player.global_position - global_position
 	var dist := to_p.length()
@@ -197,13 +202,14 @@ func _perceive() -> void:
 		return
 
 	# oido: el ruido del jugador (correr, atacar, disparar) los atrae
-	var hear := HEARING_BASE + player.noise_radius()
+	var noise: float = player.noise_radius()
+	var hear := HEARING_BASE + noise
 	if dist < hear:
 		if state == State.WANDER:
 			state = State.INVESTIGATE
 		_target = player.global_position
 		_alert_t = 1.5
-		if player.noise_radius() > 80.0 and dist < hear * 0.7:
+		if noise > 80.0 and dist < hear * 0.7:
 			state = State.CHASE
 
 
