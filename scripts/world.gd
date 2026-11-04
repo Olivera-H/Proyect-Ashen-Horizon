@@ -131,6 +131,7 @@ func generate(seed_value: int = 20261021) -> void:
 	_fill_terrain()
 	_lay_roads()
 	_place_buildings()
+	Wasteland.reserve(self)
 	_scatter_details()
 	_pick_start_and_objectives()
 	StreetMarkings.build(self)

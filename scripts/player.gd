@@ -102,7 +102,7 @@ func setup(id: String) -> void:
 
 	sprite = AnimatedSprite2D.new()
 	Settings.ensure()
-	var sheet := SpriteSheets.frames(Settings.skin, SpriteSheets.HUMAN)   # la skin elegida solo cambia el aspecto
+	var sheet := SpriteSheets.frames(Settings.playable_skin(), SpriteSheets.HUMAN)   # la skin elegida solo cambia el aspecto
 	if sheet == null:
 		sheet = SpriteSheets.frames(char_id, SpriteSheets.HUMAN)
 	if sheet != null:
@@ -263,7 +263,7 @@ func _try_dodge(dir: Vector2) -> void:
 	_dodge_t = DODGE_TIME
 	_dodge_cd = 0.7
 	_invuln = maxf(_invuln, 0.3)
-	stamina -= 20.0
+	stamina -= 20.0 * Pets.buff("dodge")
 	make_noise(60.0, 0.3)
 	Sfx.play("dodge", -4.0)
 
@@ -467,7 +467,7 @@ func use_slot(i: int) -> bool:
 func take_damage(amount: float, from_pos: Vector2) -> void:
 	if dead or _invuln > 0.0:
 		return
-	health -= amount
+	health -= amount * Pets.buff("dmg")
 	_invuln = 0.55
 	Sfx.play("hurt", -2.0)
 	velocity += (global_position - from_pos).normalized() * 120.0

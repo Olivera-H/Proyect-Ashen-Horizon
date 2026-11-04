@@ -30,6 +30,8 @@ var _pet_sprites: Array = []   # AnimatedSprite2D de la vitrina de mascotas
 var _pets_rect := Rect2()
 var _pet_msg := ""
 var _pet_msg_t := 0.0
+var _skin_msg := ""
+var _skin_msg_t := 0.0
 
 
 func _ready() -> void:
@@ -111,7 +113,7 @@ func _adjust_volume(pos: Vector2) -> bool:
 
 
 func _skin_panel(vs: Vector2) -> Rect2:
-	return Rect2(vs.x - 204.0, vs.y * 0.46, 184.0, 164.0)
+	return Rect2(vs.x - 204.0, vs.y * 0.38, 184.0, 196.0)
 
 
 func _create_skin_preview() -> void:
@@ -167,7 +169,8 @@ func _create_pet_previews() -> void:
 
 
 func _pet_card(i: int) -> Rect2:
-	return Rect2(_pets_rect.position.x + 8.0 + i * 146.0, _pets_rect.position.y + 40.0, 140.0, 200.0)
+	var cw := (_pets_rect.size.x - 16.0 - 6.0 * 4.0) / 5.0
+	return Rect2(_pets_rect.position.x + 8.0 + i * (cw + 6.0), _pets_rect.position.y + 40.0, cw, 200.0)
 
 
 func _update_pet_previews() -> void:
@@ -190,6 +193,7 @@ func _update_pet_previews() -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	_pet_msg_t = maxf(0.0, _pet_msg_t - delta)
+	_skin_msg_t = maxf(0.0, _skin_msg_t - delta)
 	_update_pet_previews()
 	_skin_timer += delta
 	if _skin_preview != null:
@@ -211,7 +215,7 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if _go_t >= 0.0:
+	if _go_t >= 0.0 or Ads.active:
 		return
 	var pos := Vector2.ZERO
 	var pressed := false
@@ -255,6 +259,11 @@ func _input(event: InputEvent) -> void:
 func _press(id: String) -> void:
 	match id:
 		"jugar":
+			if not Settings.skin_unlocked(Settings.skin):
+				Sfx.play("ui_close", -4.0)
+				_skin_msg = "Skin bloqueada: mira un anuncio"
+				_skin_msg_t = 3.0
+				return
 			Sfx.play("ui_start")
 			_go_t = 0.0
 		"controles", "creditos", "configuracion", "mascotas":
@@ -279,6 +288,25 @@ func _press(id: String) -> void:
 				Sfx.play("ui_close", -4.0)
 				_pet_msg = "La tienda no está disponible ahora mismo."
 			_pet_msg_t = 4.0
+		"skin_ad":
+			var sid := Settings.skin
+			var sname := String(Settings.SKINS[maxi(0, Settings.skin_index())]["name"])
+			Ads.show_rewarded(self, "Desbloquear skin: " + sname, func():
+				Premium.grant("skin_" + sid)
+				Settings.save()
+				Sfx.play("ui_start", -4.0)
+				_skin_msg = "¡SKIN DESBLOQUEADA!"
+				_skin_msg_t = 3.0)
+		_ when id.begins_with("pet_ad_"):
+			var apid := id.trim_prefix("pet_ad_")
+			var ad_def := Pets.get_def(apid)
+			Ads.show_rewarded(self, "Desbloquear mascota: " + String(ad_def.get("name", "")), func():
+				Premium.grant(apid)
+				Settings.pet = apid
+				Settings.save()
+				Sfx.play("ui_start", -4.0)
+				_pet_msg = "%s DESBLOQUEADA Y EQUIPADA" % String(ad_def.get("name", ""))
+				_pet_msg_t = 4.0)
 		"skin_prev":
 			_change_skin(-1)
 		"skin_next":
@@ -294,7 +322,7 @@ func _press(id: String) -> void:
 
 ## Vitrina de mascotas premium: nombre y buffs bajo cada una, con boton para comprar/equipar.
 func _draw_pets(vs: Vector2) -> void:
-	_pets_rect = Rect2(vs.x * 0.5 - 300.0, 14.0, 600.0, vs.y - 28.0)
+	_pets_rect = Rect2(vs.x * 0.5 - 312.0, 14.0, 624.0, vs.y - 28.0)
 	var pr := _pets_rect
 	var gold := Color(1.0, 0.82, 0.3)
 	draw_colored_polygon(_chamfer(pr, 10.0), Color(0.03, 0.035, 0.05, 0.96))
@@ -316,13 +344,13 @@ func _draw_pets(vs: Vector2) -> void:
 		draw_colored_polygon(PackedVector2Array([fc + Vector2(-6.0, -58.0), fc + Vector2(6.0, -58.0), fc + Vector2(34.0, 4.0), fc + Vector2(-34.0, 4.0)]), Color(accent.r, accent.g, accent.b, 0.07))
 		for ei in 3:
 			draw_rect(Rect2(fc.x - 22.0 + ei * 3.0, fc.y - 1.0 + ei * 1.5, 44.0 - ei * 6.0, 2.0), Color(0, 0, 0, 0.3))
-		_txt(String(d["name"]), card.position + Vector2(0, 94.0), 13, Color(0.97, 0.93, 0.82), HORIZONTAL_ALIGNMENT_CENTER, card.size.x)
+		_txt(String(d["name"]), card.position + Vector2(0, 94.0), 12, Color(0.97, 0.93, 0.82), HORIZONTAL_ALIGNMENT_CENTER, card.size.x)
 		_txt(String(d["kind"]), card.position + Vector2(0, 105.0), 8, accent, HORIZONTAL_ALIGNMENT_CENTER, card.size.x)
 		var by2 := card.position.y + 110.0
 		for bf in d["buffs"]:
-			draw_rect(Rect2(card.position.x + 7.0, by2 + 3.0, 3.0, 3.0), accent)
-			draw_multiline_string(_font, Vector2(card.position.x + 13.0, by2 + 8.0), String(bf), HORIZONTAL_ALIGNMENT_LEFT, card.size.x - 19.0, 8, 4, Color(0.86, 0.86, 0.8))
-			by2 += 34.0
+			draw_rect(Rect2(card.position.x + 6.0, by2 + 3.0, 3.0, 3.0), accent)
+			draw_multiline_string(_font, Vector2(card.position.x + 13.0, by2 + 8.0), String(bf), HORIZONTAL_ALIGNMENT_LEFT, card.size.x - 19.0, 8, 3, Color(0.86, 0.86, 0.8))
+			by2 += 32.0
 		# boton de accion
 		var br := Rect2(card.position.x + 8.0, card.end.y - 28.0, card.size.x - 16.0, 22.0)
 		var id := ""
@@ -330,12 +358,16 @@ func _draw_pets(vs: Vector2) -> void:
 		var bcol := Color(0.12, 0.14, 0.16)
 		if on:
 			id = "pet_unequip"
-			label = "EQUIPADA ✓ · QUITAR"
+			label = "QUITAR ✓"
 			bcol = Color(0.16, 0.3, 0.14)
 		elif own:
 			id = "pet_equip_" + String(d["id"])
 			label = "EQUIPAR"
 			bcol = Color(0.12, 0.24, 0.3)
+		elif d.get("unlock", "") == "ad":
+			id = "pet_ad_" + String(d["id"])
+			label = "▶ VER ANUNCIO"
+			bcol = Color(0.12, 0.3, 0.22)
 		else:
 			id = "pet_buy_" + String(d["id"])
 			label = "COMPRAR " + String(d["price"])
@@ -343,14 +375,17 @@ func _draw_pets(vs: Vector2) -> void:
 		_buttons.append({"rect": br, "id": id})
 		draw_colored_polygon(_chamfer(br, 4.0), bcol)
 		draw_rect(Rect2(br.position.x + 4.0, br.position.y, br.size.x - 8.0, 1.0), Color(1, 1, 1, 0.18))
-		_txt(label, br.position + Vector2(0, 15.0), 10, Color(1.0, 0.95, 0.78) if not own else Color(0.92, 0.98, 0.9), HORIZONTAL_ALIGNMENT_CENTER, br.size.x)
+		_txt(label, br.position + Vector2(0, 15.0), 9, Color(1.0, 0.95, 0.78) if not own else Color(0.92, 0.98, 0.9), HORIZONTAL_ALIGNMENT_CENTER, br.size.x)
 		if not own:
-			_txt("PREMIUM", card.position + Vector2(card.size.x - 52.0, 13.0), 7, gold, HORIZONTAL_ALIGNMENT_RIGHT, 48.0)
+			if d.get("unlock", "") == "ad":
+				_txt("GRATIS", card.position + Vector2(card.size.x - 52.0, 13.0), 7, Color(0.5, 0.9, 0.6), HORIZONTAL_ALIGNMENT_RIGHT, 48.0)
+			else:
+				_txt("PREMIUM", card.position + Vector2(card.size.x - 52.0, 13.0), 7, gold, HORIZONTAL_ALIGNMENT_RIGHT, 48.0)
 	# pie: estado de la mochila, aviso demo y boton volver
 	var bag := "MOCHILA: %d ESPACIOS" % Pets.bag_size()
 	_txt(bag, Vector2(pr.position.x + 14.0, pr.end.y - 20.0), 10, gold if Pets.equipped() else Color(0.7, 0.7, 0.66), HORIZONTAL_ALIGNMENT_LEFT, 200.0)
 	if Premium.is_demo():
-		_txt("MODO DEMO: desbloqueo gratuito de prueba (sin cobro real)", Vector2(pr.position.x + 14.0, pr.end.y - 8.0), 8, Color(0.9, 0.55, 0.4, 0.9), HORIZONTAL_ALIGNMENT_LEFT, 330.0)
+		_txt("MODO DEMO: compras y anuncios de prueba (sin cobro real)", Vector2(pr.position.x + 14.0, pr.end.y - 8.0), 8, Color(0.9, 0.55, 0.4, 0.9), HORIZONTAL_ALIGNMENT_LEFT, 330.0)
 	if _pet_msg_t > 0.0:
 		_txt(_pet_msg, Vector2(pr.position.x, pr.position.y + 252.0), 11, Color(0.98, 0.9, 0.5, minf(1.0, _pet_msg_t)), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
 	var vr := Rect2(pr.end.x - 120.0, pr.end.y - 32.0, 106.0, 24.0)
@@ -527,6 +562,26 @@ func _draw() -> void:
 		var sk: Dictionary = Settings.SKINS[si]
 		_txt(String(sk["name"]), skin_box.position + Vector2(0, 133), 12, Color(0.94, 0.87, 0.73), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
 		_txt("%s  ·  SKIN %02d / %02d" % [sk["job"], si + 1, Settings.SKINS.size()], skin_box.position + Vector2(0, 149), 9, Color(0.58, 0.79, 0.55), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x)
+		var locked := not Settings.skin_unlocked(Settings.skin)
+		_skin_preview.modulate = Color(0.22, 0.22, 0.28) if locked else Color.WHITE
+		if locked:   # candado sobre el personaje
+			var lc := skin_box.position + Vector2(skin_box.size.x * 0.5, 78.0)
+			draw_rect(Rect2(lc.x - 9.0, lc.y - 2.0, 18.0, 14.0), Color(0.78, 0.66, 0.25))
+			draw_rect(Rect2(lc.x - 9.0, lc.y - 2.0, 18.0, 14.0), Color(0.2, 0.15, 0.05), false, 1.0)
+			draw_rect(Rect2(lc.x - 6.0, lc.y - 12.0, 3.0, 10.0), Color(0.85, 0.85, 0.8))
+			draw_rect(Rect2(lc.x + 3.0, lc.y - 12.0, 3.0, 10.0), Color(0.85, 0.85, 0.8))
+			draw_rect(Rect2(lc.x - 6.0, lc.y - 13.0, 12.0, 3.0), Color(0.85, 0.85, 0.8))
+			draw_rect(Rect2(lc.x - 1.0, lc.y + 3.0, 2.0, 5.0), Color(0.2, 0.15, 0.05))
+		var adr := Rect2(skin_box.position.x + 12.0, skin_box.end.y - 38.0, skin_box.size.x - 24.0, 22.0)
+		if locked:
+			_buttons.append({"rect": adr, "id": "skin_ad"})
+			draw_colored_polygon(_chamfer(adr, 4.0), Color(0.34, 0.24, 0.05))
+			draw_rect(Rect2(adr.position.x + 4.0, adr.position.y, adr.size.x - 8.0, 1.0), Color(1, 1, 1, 0.2))
+			_txt("▶ VER ANUNCIO", adr.position + Vector2(0, 15.0), 10, Color(1.0, 0.92, 0.6), HORIZONTAL_ALIGNMENT_CENTER, adr.size.x)
+		else:
+			_txt("DESBLOQUEADA ✓", adr.position + Vector2(0, 15.0), 9, Color(0.55, 0.85, 0.5), HORIZONTAL_ALIGNMENT_CENTER, adr.size.x)
+		if _skin_msg_t > 0.0:
+			_txt(_skin_msg, Vector2(skin_box.position.x - 40.0, skin_box.position.y - 6.0), 10, Color(1.0, 0.9, 0.5, minf(1.0, _skin_msg_t)), HORIZONTAL_ALIGNMENT_CENTER, skin_box.size.x + 80.0)
 		for di in Settings.SKINS.size():   # indicador de pagina
 			var dx := skin_box.position.x + skin_box.size.x * 0.5 + (float(di) - (Settings.SKINS.size() - 1) * 0.5) * 9.0
 			draw_circle(Vector2(dx, skin_box.end.y - 8.0), 2.2 if di == si else 1.4, Color(0.62, 0.8, 0.48) if di == si else Color(0.4, 0.45, 0.4, 0.8))

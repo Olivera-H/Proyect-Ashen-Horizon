@@ -15,6 +15,7 @@ const SKINS := [
 	{"id": "granjero", "name": "ABEL CRUZ", "job": "GRANJERO"},
 ]
 
+## skin que se esta viendo/eligiendo; solo se juega con ella si esta desbloqueada
 static var skin := "mateo"
 static var hide_messages := false
 ## id de la mascota equipada ("" = ninguna)
@@ -42,6 +43,17 @@ static func save() -> void:
 	cfg.set_value("game", "hide_messages", hide_messages)
 	cfg.set_value("game", "pet", pet)
 	cfg.save(PATH)
+
+
+## Mateo viene desbloqueado; las demas skins se desbloquean viendo un anuncio.
+static func skin_unlocked(id: String) -> bool:
+	return id == "mateo" or Premium.owns("skin_" + id)
+
+
+## Skin con la que se juega de verdad (la elegida si esta desbloqueada, si no Mateo).
+static func playable_skin() -> String:
+	ensure()
+	return skin if skin_unlocked(skin) else "mateo"
 
 
 static func skin_index() -> int:

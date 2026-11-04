@@ -51,7 +51,7 @@ static func purchase(id: String) -> bool:
 	else:
 		ok = _store_purchase(Pets.get_def(id).get("sku", ""))
 	if ok:
-		_grant(id)
+		grant(id)
 	return ok
 
 
@@ -60,7 +60,9 @@ static func _store_purchase(_sku: String) -> bool:
 	return false
 
 
-static func _grant(id: String) -> void:
+## Concede un derecho (compra, anuncio visto, etc.) y lo guarda.
+static func grant(id: String) -> void:
+	_ensure()
 	_owned[id] = true
 	var cfg := ConfigFile.new()
 	cfg.load(PATH)

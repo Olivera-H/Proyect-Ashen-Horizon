@@ -68,6 +68,7 @@ func _ready() -> void:
 
 	var houses_floor := Node2D.new()
 	add_child(houses_floor)
+	Wasteland.build_ground(houses_floor)
 	farm = Farm.new()                   # huerto del refugio (bajo las entidades)
 	houses_floor.add_child(farm)
 	farm.setup(world)
@@ -77,6 +78,7 @@ func _ready() -> void:
 	ents.y_sort_enabled = true
 	add_child(ents)
 	StreetProps.spawn(world, ents)
+	Wasteland.build_fence(ents)
 	houses = Houses.new()
 	add_child(houses)
 	houses.setup(world, houses_floor, ents)
@@ -131,7 +133,7 @@ func _spawn_player() -> void:
 		pet.setup(player, world)
 		ents.add_child(pet)
 	var sz := world.size_px()
-	player.camera.limit_left = 0
+	player.camera.limit_left = -Wasteland.WIDTH_PX
 	player.camera.limit_top = 0
 	player.camera.limit_right = int(sz.x)
 	player.camera.limit_bottom = int(sz.y)

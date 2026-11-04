@@ -64,8 +64,13 @@ SPECIES = {
     "ceniza": dict(kind="dog", body="8d929e", dark="5b606c", light="dfe2e8", accent="c8412f", eye="2a6fb0", ear="floppy"),
     "sombra": dict(kind="cat", body="332f44", dark="1d1a29", light="55507a", accent="4fd6e6", eye="f2d04a", ear="point"),
     "presagio": dict(kind="bird", body="2b2842", dark="16141f", light="5d5c92", accent="b78cff", eye="ff5a5a", beak="e8a838"),
+    "tizon": dict(kind="raccoon", body="8d867e", dark="46403b", light="ddd8cf", accent="f2d04a", eye="f4f0e0", ear="point"),
     "ambar": dict(kind="fox", body="e2852f", dark="a4531a", light="f8e6c8", accent="62d26f", eye="2a1a10", ear="point"),
 }
+
+
+def wag_b(t):
+    return (-1, 0, 1, 0)[t]
 
 
 def quad(sp, facing, state, t):
@@ -76,7 +81,8 @@ def quad(sp, facing, state, t):
     bob = (0, -1, 0, -1)[t] if walk else 0
     breath = 1 if (not walk and t in (1, 2)) else 0
     lift = (0, 1, 0, -1)[t] if walk else 0       # patas alternadas
-    fox = s["kind"] == "fox"
+    raccoon = s["kind"] == "raccoon"
+    fox = s["kind"] in ("fox", "raccoon")
     cat = s["kind"] == "cat"
     blink = (not walk) and t == 3
     if facing == "side":
@@ -90,6 +96,9 @@ def quad(sp, facing, state, t):
         elif fox:
             c.blob(2, by - 1 + (wag % 2), 6, by + 3, body)
             c.rect(2, by + 1 + (wag % 2), 3, by + 3, light)
+            if raccoon:
+                for sx in (3, 5):
+                    c.rect(sx, by - 1 + (wag % 2), sx, by + 3, dark)
         else:
             for i in range(4):
                 c.put(6 - i, by + 1 - i // 2 - (1 if wag > 1 else 0), body)
@@ -110,6 +119,8 @@ def quad(sp, facing, state, t):
         c.rect(19, hy + 3, 22, hy + 5, light if not cat else body)
         c.rect(22, hy + 3, 22, hy + 3, EYE)
         c.rect(15, hy + 5, 19, hy + 6, light if not cat else dark)
+        if raccoon:   # antifaz
+            c.rect(16, hy + 1, 20, hy + 3, dark)
         # orejas
         if s["ear"] == "floppy":
             c.rect(14, hy - 1, 15, hy + 3, dark)
@@ -169,6 +180,8 @@ def quad(sp, facing, state, t):
         if not back:
             c.rect(9, hy + 5, 14, hy + 8, light if not cat else body)
             c.rect(11, hy + 5, 12, hy + 5, EYE)
+            if raccoon:
+                c.rect(7, hy + 2, 16, hy + 4, dark)
             if blink:
                 c.rect(8, hy + 3, 9, hy + 3, dark)
                 c.rect(14, hy + 3, 15, hy + 3, dark)
@@ -179,6 +192,9 @@ def quad(sp, facing, state, t):
         else:
             c.rect(10, hy + 8, 13, hy + 8, acc)
             c.rect(10, hy + 1, 13, hy + 1, dark)
+            if raccoon:
+                for sx in (10, 12):
+                    c.rect(sx + wag_b(t), by - 1, sx + wag_b(t), by + 4, dark)
     return c.image()
 
 

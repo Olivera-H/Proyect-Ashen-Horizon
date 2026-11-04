@@ -12,3 +12,11 @@ Notas:
 - La versión web de GitHub Pages **no** puede cobrar con Google Play; allí solo sirve el modo demo. Si quieres cobrar en web hace falta otra pasarela (Stripe, etc.) y una cuenta/servidor.
 - Google se queda con 15–30% de cada venta; hay que declarar compras integradas en la ficha de la tienda y cumplir las políticas de pago.
 - Alternativa más simple: venta única de "Pack de mascotas" o anuncios recompensados.
+
+## Anuncios con recompensa (skins y mascota Tizón)
+Las skins distintas de Mateo y la mascota **Tizón** se desbloquean viendo 1 anuncio (`scripts/ads.gd`). Ahora es un anuncio **de prueba** de 5 s (`Ads.DEMO = true`). Para anuncios reales:
+1. Crea una cuenta de **AdMob** y una app Android; crea un bloque de anuncio **Con recompensa** (te da un ID).
+2. Instala el plugin de AdMob para Godot 4.3 (p. ej. *Poing Studios godot-admob*) en la plantilla Android.
+3. Implementa `Ads._network_show(on_reward)` (cargar, mostrar y llamar a `on_reward` en el evento "user earned reward") y pon `DEMO := false`.
+4. Usa IDs de prueba mientras desarrollas (no hagas clic en tus propios anuncios reales: AdMob puede suspender la cuenta). Hace falta política de privacidad y declarar anuncios en Play Console.
+5. En la web (GitHub Pages) AdMob no funciona; allí queda el anuncio de prueba.

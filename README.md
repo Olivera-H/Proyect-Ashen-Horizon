@@ -242,3 +242,7 @@ En el inicio, botón **MASCOTAS**: cuatro compañeros animados que te siguen por
 
 Datos en `scripts/pets.gd`, derechos de compra en `scripts/premium.gd` (modo **DEMO** gratuito hasta conectar una tienda real; ver `docs/MONETIZACION.md`), sprites con `python3 tools/gen_pets.py`.
 También: brillos de objetos con un solo pulso compartido y percepción de zombis desfasada (~7 Hz).
+
+### Anuncios, skins bloqueadas y borde oeste
+- **Mascota Tizón** (mapache: esquivar cuesta 40% menos, 12% menos daño): se consigue con un anuncio. Skins: solo Mateo viene desbloqueada; las otras se activan con «VER ANUNCIO» (anuncio de prueba hasta conectar AdMob, ver `docs/MONETIZACION.md`).
+- **Borde izquierdo del mapa**: cerca continua y, al otro lado, un campo desolado con zombis muertos (`scripts/wasteland.gd`, arte con `python3 tools/gen_wasteland.py`).
