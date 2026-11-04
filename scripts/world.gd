@@ -327,7 +327,8 @@ func _block_ranges() -> Array:
 ## Vecindarios: en cada manzana, una fila de casas con la fachada hacia la calle del sur,
 ## separadas por patios, con un caminito de la puerta hasta la acera.
 func _place_buildings() -> void:
-	var residential := ["cabana", "casa", "chalet", "casita"]
+	# casa y chalet (arte original) ya no se colocan: las reemplazan casona y mansion (mucho mas grandes)
+	var residential := ["cabana", "casona", "mansion", "casita"]
 	for block in _block_ranges():
 		if block.position.x == 120 and block.position.y == 22:
 			_build_house(Vector2i(130, 23), "laboratorio", block)
@@ -357,12 +358,14 @@ func _place_buildings() -> void:
 			Vector2i(56, 102): "comisaria", Vector2i(24, 102): "supermercado", Vector2i(88, 102): "cancha"}
 		var key := Vector2i(block.position.x, block.position.y)
 		if downtown:
-			kinds = ["tienda", "casita", "apartamentos", "casa"]
+			kinds = ["tienda", "casita", "apartamentos", "casona"]
 			forced = [civic[key]] if civic.has(key) else ["tienda", "casita"]
 		elif not industrial and block.position.x >= 24:
 			kinds.append("apartamentos")
 			if civic.has(key):
 				forced = [civic[key]]
+			else:   # casas grandes: una por manzana residencial (solo caben en manzanas de 27 de ancho)
+				forced = [{Vector2i(24, 55): "mansion"}.get(key, "casona")]
 		elif industrial and civic.has(key):
 			forced = [civic[key]]
 		var x: int = block.position.x + rng.randi_range(1, 2)
@@ -509,7 +512,7 @@ func _pick_start_and_objectives() -> void:
 	var best_refuge := INF
 	var best_hosp := INF
 	for b in buildings:
-		if not (b["kind"] in ["cabana", "casa", "chalet", "casita", "hospital"]):
+		if not (b["kind"] in ["cabana", "casa", "chalet", "casita", "casona", "mansion", "hospital"]):
 			continue
 		var c: Vector2 = b["center"]
 		var d1 := c.distance_to(Vector2(30, 30) * TS)
@@ -680,7 +683,7 @@ func _place_special_loot(refuge: Dictionary, hospital: Dictionary) -> void:
 	for nb in near:
 		if card_pool.size() >= 5:
 			break
-		if nb["kind"] in ["cabana", "casa", "chalet", "casita", "apartamentos", "tienda"]:
+		if nb["kind"] in ["cabana", "casa", "chalet", "casita", "casona", "mansion", "apartamentos", "tienda"]:
 			card_pool.append(nb)
 	if card_pool.is_empty():
 		card_pool = near.slice(0, 4)

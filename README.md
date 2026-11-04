@@ -246,3 +246,6 @@ También: brillos de objetos con un solo pulso compartido y percepción de zombi
 ### Anuncios, skins bloqueadas y borde oeste
 - **Mascota Tizón** (mapache: esquivar cuesta 40% menos, 12% menos daño): se consigue con un anuncio. Skins: solo Mateo viene desbloqueada; las otras se activan con «VER ANUNCIO» (anuncio de prueba hasta conectar AdMob, ver `docs/MONETIZACION.md`).
 - **Borde izquierdo del mapa**: cerca continua y, al otro lado, un campo desolado con zombis muertos (`scripts/wasteland.gd`, arte con `python3 tools/gen_wasteland.py`).
+
+### Casas grandes (casona y mansión)
+Las casas pequeñas de arte original (**chalet** y **casa**) dejan de colocarse en el mapa y las sustituyen dos diseños propios mucho más grandes: **casona** (22×13 tiles, ladrillo, 3 habitaciones y cocina) y **mansión** (25×14, estuco, 5 zonas con chimenea, piano, biblioteca y dormitorios), ambas con buhardillas y dos chimeneas en el techo. Se generan con `python3 tools/gen_houses.py` (definidas en `tools/gen_buildings.py`). Siguen en el juego las cabañas, talleres y casitas. Solo caben en las manzanas de 27 tiles de ancho, por eso hay 3 (una mansión y dos casonas); las manzanas estrechas del oeste conservan casitas y cabañas.

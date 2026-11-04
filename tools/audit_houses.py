@@ -85,3 +85,28 @@ if __name__ == "__main__":
         print(n, "%.0f%% -> %.0f%% tras ajustar cajas" % (100 * audit(d)[0], 100 * r))
         for b in nb:
             print("   ", b)
+
+
+def mark_unreachable(d):
+    """Convierte en 'o' (sin botin) los pisos 'f' a los que el jugador no llega (bajo tabiques/muebles)."""
+    w, h = d["w"], d["h"]
+    blocked = np.zeros((h * TS, w * TS), bool)
+    for y, row in enumerate(d["rows"]):
+        for x, c in enumerate(row):
+            if c in "#.":
+                blocked[y * TS:(y + 1) * TS, x * TS:(x + 1) * TS] = True
+    for (bx, by, bw, bh) in d["boxes"]:
+        blocked[int(round(by * TS)):int(round((by + bh) * TS)), int(round(bx * TS)):int(round((bx + bw) * TS))] = True
+    pad = np.pad(blocked, 1, constant_values=True)
+    free = ndimage.distance_transform_edt(~pad)[1:-1, 1:-1] > RADIUS
+    lab, _ = ndimage.label(free)
+    door_lab = lab[(h - 1) * TS + 8, d["door_x"] * TS + TS]
+    rows = []
+    for y, row in enumerate(d["rows"]):
+        out = ""
+        for x, c in enumerate(row):
+            if c == "f" and (door_lab == 0 or lab[y * TS + 8, x * TS + 8] != door_lab):
+                c = "o"
+            out += c
+        rows.append(out)
+    d["rows"] = rows

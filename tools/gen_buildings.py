@@ -140,6 +140,42 @@ SPECS = {
         furn=[("bunk", 1, 3.2, 3, 1.5), ("bunk", 5, 3.2, 3, 1.5), ("rack", 10, 3.1, 4, 0.9), ("rack", 15, 3.1, 4, 0.9),
               ("crate", 18.5, 5.6, 1.3, 1.1), ("table", 7, 6.4, 4, 1.1), ("crate", 1.2, 6.8, 1.3, 1.1)],
         roof_kind="camo"),
+
+    # ---- casas grandes (reemplazan a chalet y casa en el mapa; esos dos siguen en el repo) ----
+    "casona": dict(
+        texture="brick", decor="pictures", shutters="#2f5a3a", curtains="#e8d8b0", planks=True,
+        rug=(8.6, 4.4, 13.6, 6.3), rugc="#7a3b2f",
+        tw=22, th=13, door_x=10, floors=[(1, 3, 20, 7)], sign=None,
+        pal=dict(wall="#c98f6e", wall_d="#8a5a42", floor_a="#b88f62", floor_b="#ad8458", joint="#8a6a46",
+                 accent="#2f5a3a", roof="#7a4a3e", roof_d="#4e2f28", sign_bg="#5a4630", sign_fg="#f3e6c4"),
+        windows=[(1, 4), (5, 8), (14, 17), (18, 21)], awning=None,
+        walls=[(7.6, 3.0, 0.4, 1.9), (14.6, 3.0, 0.4, 1.9)],
+        lamps=[],
+        furn=[("bed", 1.2, 3.2, 2.4, 1.7), ("nightstand", 3.8, 3.2, 0.9, 0.9), ("wardrobe", 5.4, 3.0, 1.8, 1.4),
+              ("desk", 1.4, 5.9, 3.0, 1.0), ("bookcase", 5.2, 6.6, 2.4, 0.9),
+              ("fireplace", 9.4, 3.0, 3.4, 1.3), ("armchair", 8.4, 4.6, 1.1, 1.1), ("sofa", 11.0, 4.8, 3.0, 1.1),
+              ("plant", 13.4, 3.2, 0.7, 0.7),
+              ("kitchen", 15.4, 3.0, 3.2, 0.9), ("stove", 19.4, 3.0, 1.6, 1.3), ("dining", 16.2, 4.7, 3.6, 1.5),
+              ("piano", 14.8, 6.6, 2.6, 1.2), ("crate", 19.6, 6.8, 1.1, 1.0), ("plant", 18.0, 7.0, 0.7, 0.7)],
+        roof_kind="pitched_manor"),
+    "mansion": dict(
+        texture="stucco", decor="pictures", shutters="#243f2c", curtains="#efe2c0", planks=True,
+        rug=(9.4, 4.7, 15.6, 7.0), rugc="#6e2630",
+        tw=25, th=14, door_x=11, floors=[(1, 3, 23, 8)], sign=None,
+        pal=dict(wall="#e2ddd0", wall_d="#8c867a", floor_a="#b08a5c", floor_b="#a58052", joint="#80623e",
+                 accent="#8a2f3a", roof="#4e5a6c", roof_d="#323b49", sign_bg="#5a4630", sign_fg="#f3e6c4"),
+        windows=[(1, 3), (4, 6), (7, 9), (15, 17), (18, 20), (21, 23)], awning=None,
+        walls=[(8.8, 3.0, 0.4, 2.0), (16.8, 3.0, 0.4, 2.0)],
+        lamps=[],
+        furn=[("bed", 1.2, 3.2, 2.4, 1.7), ("nightstand", 3.8, 3.2, 0.9, 0.9), ("wardrobe", 5.8, 3.0, 2.2, 1.4),
+              ("bunk", 1.2, 5.6, 3.0, 1.5), ("bookcase", 5.4, 5.8, 2.6, 0.9),
+              ("bookcase", 1.4, 7.9, 2.8, 0.9), ("desk", 5.4, 7.9, 2.6, 1.0),
+              ("fireplace", 10.8, 3.0, 3.6, 1.3), ("sofa", 9.8, 5.1, 3.0, 1.1), ("sofa", 13.8, 5.1, 2.6, 1.1),
+              ("armchair", 9.4, 3.3, 0.9, 1.0), ("plant", 15.2, 3.2, 0.7, 0.7),
+              ("kitchen", 17.6, 3.0, 3.4, 0.9), ("stove", 21.6, 3.0, 1.6, 1.3), ("dining", 18.4, 5.0, 4.0, 1.6),
+              ("piano", 13.8, 7.6, 2.8, 1.2), ("armchair", 17.8, 7.6, 1.1, 1.1), ("crate", 21.8, 7.8, 1.1, 1.0),
+              ("plant", 20.4, 8.0, 0.7, 0.7)],
+        roof_kind="pitched_manor"),
 }
 # cancha: terreno abierto con valla; no tiene techo.
 CANCHA = dict(tw=26, th=14, door_x=12)
@@ -305,6 +341,41 @@ def draw_furn(d, kind, x, y, w, h, rnd, p):
         R(d, X0 + 9, Y0 - 1, X0 + 10, Y0 + 2, C("#aab2ba"))
         R(d, X1 - 16, Y0 + 3, X1 - 6, Y0 + 7, C("#3a3d44")); R(d, X1 - 13, Y0 + 2, X1 - 9, Y0 + 3, C("#c8c8c0"))     # olla
         R(d, X0 + 20, Y0 + 3, X0 + 24, Y0 + 7, C("#3f78c8"))
+    elif kind == "wardrobe":
+        box3d(d, x, y, w, h, C("#8a6240"), C("#5e4128"), 0.55)
+        mx = (X0 + X1) // 2
+        d.line([(mx, Y0 + 3), (mx, Y1 - 2)], fill=OL)
+        R(d, mx - 3, Y0 + 9, mx - 2, Y0 + 12, C("#e8c878")); R(d, mx + 2, Y0 + 9, mx + 3, Y0 + 12, C("#e8c878"))
+    elif kind == "bookcase":
+        box3d(d, x, y, w, h, C("#7a5636"), C("#4e3622"), 0.55)
+        cols = [C("#a83a3a"), C("#3a6aa8"), C("#d8b04a"), C("#4a8a5a"), C("#e8e0cc"), C("#7a4a8a")]
+        for bx in range(X0 + 2, X1 - 1, 3):
+            R(d, bx, Y0 + 2, bx + 1, Y0 + 2 + rnd.randint(3, 6), rnd.choice(cols))
+        for bx in range(X0 + 2, X1 - 1, 3):
+            R(d, bx, Y0 + 10, bx + 1, Y0 + 10 + rnd.randint(2, 4), rnd.choice(cols))
+    elif kind == "armchair":
+        box3d(d, x, y, w, h, shade(p["accent"], 20), shade(p["accent"], -50), 0.5)
+        R(d, X0 + 1, Y0, X1 - 1, Y0 + 3, shade(p["accent"], -10)); R(d, X0 + 3, Y0 + 5, X1 - 3, Y1 - 5, shade(p["accent"], 38))
+    elif kind == "piano":
+        box3d(d, x, y, w, h, C("#1d1d22"), C("#0e0e12"), 0.55)
+        for kx in range(X0 + 3, X1 - 2, 3):
+            R(d, kx, Y1 - 6, kx + 1, Y1 - 2, C("#f2eee0"))
+        R(d, X0 + 2, Y0 + 2, X1 - 2, Y0 + 3, C("#3a3a44"))
+    elif kind == "dining":
+        box3d(d, x, y + 0.25, w, h - 0.5, C("#a87c4c"), C("#6a4c2c"), 0.4)
+        R(d, X0 + 8, Y0 + 6, X0 + 13, Y0 + 11, C("#e8e4d6")); R(d, X1 - 13, Y0 + 6, X1 - 8, Y0 + 11, C("#e8e4d6"))
+        mx = (X0 + X1) // 2
+        R(d, mx - 2, Y0 + 5, mx + 2, Y0 + 9, C("#b8483a"))
+        for cx in range(X0 + 6, X1 - 8, 14):   # sillas
+            R(d, cx, Y0 - 4, cx + 8, Y0 - 1, C("#6a4c2c")); R(d, cx, Y1 + 1, cx + 8, Y1 + 4, C("#6a4c2c"))
+    elif kind == "fireplace":
+        R(d, X0, Y0 - 6, X1, Y1, C("#a89a86")); d.rectangle([X0, Y0 - 6, X1, Y1], outline=OL)
+        for yy in range(Y0 - 4, Y1, 5):
+            d.line([(X0, yy), (X1, yy)], fill=C("#7e725f"))
+        R(d, X0 + 8, Y0 + 2, X1 - 8, Y1 - 1, C("#1c1a1c"))
+        R(d, X0 + 11, Y0 + 6, X1 - 11, Y1 - 2, C("#ff8a2e")); R(d, X0 + 14, Y0 + 9, X1 - 14, Y1 - 3, C("#ffd35a"))
+        R(d, X0 - 2, Y0 - 8, X1 + 2, Y0 - 6, C("#6a4c2c"))
+        R(d, X0 + 6, Y0 - 14, X0 + 9, Y0 - 8, C("#e8c878")); R(d, X1 - 12, Y0 - 13, X1 - 6, Y0 - 8, C("#5a7a9a"))
     elif kind == "plant":
         R(d, X0 + 1, Y0 + 5, X1 - 1, Y1, C("#8a5a3c"))
         R(d, X0, Y0, X1, Y0 + 5, C("#5a7a3c")); R(d, X0 + 2, Y0 - 2, X1 - 2, Y0 + 2, C("#7a9a4c"))
@@ -577,6 +648,21 @@ def roof_image(spec, rnd):
             R(d, T(ax), T(ay), T(ax) + 33, T(ay) + 29, C("#a0a4a8")); d.rectangle([T(ax), T(ay), T(ax) + 33, T(ay) + 29], outline=OL)
             cx, cy = T(ax) + 16, T(ay) + 10
             d.ellipse([cx - 9, cy - 8, cx + 9, cy + 8], fill=C("#464c54"), outline=OL)
+    if kind == "pitched_manor":
+        ridge = fh // 2
+        # segunda chimenea y buhardillas con ventana
+        c2 = W - T(4.5)
+        R(d, c2, ridge - 16, c2 + 11, ridge + 2, C("#8a5a46")); d.rectangle([c2, ridge - 16, c2 + 11, ridge + 2], outline=OL)
+        R(d, c2 - 1, ridge - 18, c2 + 12, ridge - 16, C("#4a4a4e"))
+        for dx in (T(2.6), spec["door_x"] * TS - 6, W - T(6.2)):
+            bw_, bh_ = 38, 26
+            by_ = ridge + 8
+            R(d, dx, by_, dx + bw_, by_ + bh_, shade(p["wall"], -6)); d.rectangle([dx, by_, dx + bw_, by_ + bh_], outline=OL)
+            R(d, dx + 8, by_ + 5, dx + bw_ - 8, by_ + bh_ - 4, C("#2c3a48")); R(d, dx + 10, by_ + 7, dx + bw_ - 10, by_ + bh_ - 6, C("#7fa6c0"))
+            d.line([(dx + bw_ // 2, by_ + 5), (dx + bw_ // 2, by_ + bh_ - 4)], fill=p["wall_d"])
+            d.polygon([(dx - 4, by_), (dx + bw_ // 2, by_ - 14), (dx + bw_ + 4, by_)], fill=shade(p["roof"], 18), outline=OL)
+            d.line([(dx + bw_ // 2, by_ - 14), (dx + bw_ // 2, by_ - 2)], fill=shade(p["roof"], -30))
+        R(d, 0, ridge - 2, W - 1, ridge + 1, shade(p["roof"], 56))   # cumbrera mas marcada
     if kind == "pitched_refugio":
         ridge = fh // 2
         for (px0, py0) in ((T(1.2), T(0.9)), (T(3.6), T(0.9))):     # paneles solares

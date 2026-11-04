@@ -175,6 +175,8 @@ def main():
     for nm, bd in bdata.items():
         bd["boxes"], rr = audit_houses.relax(bd)
         print("   %s transitable: %.0f%%" % (nm, 100 * rr))
+        if nm in ("casona", "mansion"):
+            audit_houses.mark_unreachable(bd)
         data[nm] = bd
     print("laboratorio", _imgs["laboratorio_interior"].size)
     write_gd(data)
