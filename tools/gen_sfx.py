@@ -343,8 +343,39 @@ def refuge():
     save("gen_loop", x[:-fade], 0.55)
 
 
+def supply():
+    """Avion de carga (turbohelice) que cruza, apertura del paracaidas y caja al caer."""
+    d = 7.0   # = tiempo de vuelo del avion en supply_drop.gd (1040 px a 150 px/s)
+    n = int(d * SR)
+    t = t_(d)
+    x = t / d
+    f0 = 92.0
+    f = f0 * (1 + 0.085 * np.tanh(-(x - 0.5) * 7.0))        # efecto Doppler al pasar
+    blade = saw(f, d) * 0.5 + saw(f * 2.0, d) * 0.3 + sine(f * 3.0, d) * 0.15
+    eng = lp(blade, 1100) * (0.78 + 0.22 * np.sin(2 * np.pi * 23 * t))   # batido de las helices
+    drone = lp(saw(f * 0.5, d), 260) * 0.7
+    wind = bp(noise(d), 350, 2600) * 0.35
+    gauss = 0.35 + 0.65 * np.exp(-((x - 0.5) / 0.3) ** 2)
+    sig = (eng + drone + wind) * gauss
+    fade = int(0.25 * SR)
+    sig[:fade] *= np.linspace(0, 1, fade)
+    sig[-fade:] *= np.linspace(1, 0, fade)
+    save("plane_pass", sig, 0.8)
+    n = int(0.8 * SR)
+    t = t_(0.8)
+    flutter = bp(noise(0.8), 400, 3200) * (0.55 + 0.45 * np.sin(2 * np.pi * 17 * t)) * env(n, 0.01, 0.5, 0.2, 0.25)
+    fwump = sweep(110, 45, 0.8) * decay(n, 0.12)
+    save("chute_open", mix(flutter * 0.7, fwump * 0.9), 0.7)
+    n = int(0.6 * SR)
+    thud = sweep(130, 45, 0.6) * decay(n, 0.09)
+    scuff = lp(noise(0.6), 1300) * decay(n, 0.05) * 0.5
+    knock = np.concatenate([np.zeros(int(0.07 * SR)), sine(240, 0.2) * decay(int(0.2 * SR), 0.03) * 0.5])
+    knock2 = np.concatenate([np.zeros(int(0.17 * SR)), sine(190, 0.2) * decay(int(0.2 * SR), 0.03) * 0.35])
+    save("crate_land", mix(thud, scuff, knock, knock2), 0.8)
+
+
 def main():
-    footsteps(); melee(); guns(); zombies(); player(); items(); doors(); ambience(); alarm(); ui(); farm(); refuge()
+    supply(); footsteps(); melee(); guns(); zombies(); player(); items(); doors(); ambience(); alarm(); ui(); farm(); refuge()
     files = sorted(f for f in os.listdir(OUT) if f.endswith(".wav"))
     size = sum(os.path.getsize(os.path.join(OUT, f)) for f in files)
     print("%d sonidos, %.1f MB en %s" % (len(files), size / 1e6, os.path.normpath(OUT)))

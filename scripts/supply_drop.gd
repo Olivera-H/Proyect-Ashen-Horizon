@@ -19,6 +19,7 @@ var ground_parent: Node2D
 
 var _plane: Sprite2D
 var _plane_shadow: Sprite2D
+var _engine: AudioStreamPlayer2D
 var _chute: Sprite2D
 var _falling_crate: Sprite2D
 var _dir := Vector2.RIGHT
@@ -58,6 +59,16 @@ func setup(target: Vector2, ents: Node2D) -> void:
 	_plane.texture = _tex(PLANE_TEX)
 	add_child(_plane)
 	_plane.rotation = _dir.angle() + PI * 0.5   # el dibujo mira hacia arriba
+	# motor del avion: suena desde el propio avion (se oye acercarse, pasar y alejarse)
+	var engine_stream: AudioStream = Sfx._stream("plane_pass")
+	if engine_stream != null:
+		_engine = AudioStreamPlayer2D.new()
+		_engine.stream = engine_stream
+		_engine.max_distance = 900.0
+		_engine.attenuation = 1.2
+		_engine.volume_db = linear_to_db(maxf(Sfx.sfx_level, 0.0001)) - 1.0
+		_plane.add_child(_engine)
+		_engine.play()
 	_plane_shadow.rotation = _plane.rotation
 	_plane.global_position = _start
 	_plane_shadow.global_position = _start + Vector2(30, ALTITUDE * 0.9)
@@ -93,6 +104,7 @@ func _release() -> void:
 	_chute.scale = Vector2(0.4, 0.4)   # empieza cerrado y se abre
 	add_child(_chute)
 	_fall_t = 0.0
+	Sfx.play_at("chute_open", ground_pos + Vector2(0, -ALTITUDE), -2.0, 0.04)
 	released.emit()
 
 
@@ -137,6 +149,7 @@ func _land() -> void:
 	crate.offset = Vector2(-sz.x * 0.5, -sz.y + 3.0)
 	crate.global_position = ground_pos
 	ground_parent.add_child(crate)
+	Sfx.play_at("crate_land", ground_pos, 0.0, 0.05)
 	queue_redraw()
 	landed.emit()
 
