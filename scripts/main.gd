@@ -134,9 +134,9 @@ func _spawn_player() -> void:
 		ents.add_child(pet)
 	var sz := world.size_px()
 	player.camera.limit_left = -Wasteland.WIDTH_PX
-	player.camera.limit_top = 0
+	player.camera.limit_top = -Wasteland.WIDTH_PX
 	player.camera.limit_right = int(sz.x)
-	player.camera.limit_bottom = int(sz.y)
+	player.camera.limit_bottom = int(sz.y) + Wasteland.WIDTH_PX
 	checkpoint = world.start_pos
 
 

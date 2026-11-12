@@ -245,7 +245,7 @@ También: brillos de objetos con un solo pulso compartido y percepción de zombi
 
 ### Anuncios, skins bloqueadas y borde oeste
 - **Mascota Tizón** (mapache: esquivar cuesta 40% menos, 12% menos daño): se consigue con un anuncio. Skins: solo Mateo viene desbloqueada; las otras se activan con «VER ANUNCIO» (anuncio de prueba hasta conectar AdMob, ver `docs/MONETIZACION.md`).
-- **Borde izquierdo del mapa**: cerca continua y, al otro lado, un campo desolado con zombis muertos (`scripts/wasteland.gd`, arte con `python3 tools/gen_wasteland.py`).
+- **Bordes oeste, norte y sur del mapa**: cerca continua y, al otro lado, un campo desolado con zombis muertos (`scripts/wasteland.gd`, arte con `python3 tools/gen_wasteland.py`).
 
 ### Sonido del avión de suministros
 El avión suena desde su propia posición (motor turbohélice con efecto Doppler, se oye acercarse, pasar y alejarse); además suenan la apertura del paracaídas y el golpe de la caja (`plane_pass`, `chute_open`, `crate_land`, generados en `tools/gen_sfx.py`).

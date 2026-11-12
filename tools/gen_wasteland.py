@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Campo desolado al oeste del mapa (fuera de la cerca): assets/world/wasteland.png
-384x1920 px (24x120 tiles). Tierra reseca, grietas, cráteres, árboles muertos, huesos y
+"""Campo desolado fuera de la cerca en los bordes oeste, norte y sur del mapa:
+assets/world/wasteland.png (384x1920), wasteland_n.png y wasteland_s.png (3968x384, incluyen las esquinas). Tierra reseca, grietas, cráteres, árboles muertos, huesos y
 cadáveres de zombis (hojas de assets/sprites rotadas y apagadas). Procedural y determinista.
 Uso: python3 tools/gen_wasteland.py"""
 import math
@@ -11,8 +11,11 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SPR = os.path.join(HERE, "..", "assets", "sprites")
-OUT = os.path.join(HERE, "..", "assets", "world", "wasteland.png")
-W, H = 384, 1920
+OUT_DIR = os.path.join(HERE, "..", "assets", "world")
+DEPTH = 384          # profundidad del campo (24 tiles)
+MAP_W, MAP_H = 3584, 1920   # mapa en px (224x120 tiles)
+W, H = DEPTH, MAP_H
+SIDE = "west"        # west | north | south: lado donde esta la cerca
 rnd = random.Random(20261104)
 
 
@@ -147,6 +150,19 @@ def dead_tree(img, x, y):
         put(img, x + dx, y + 1, hx("352e22"))
 
 
+def to_xy(depth, along):
+    """(profundidad desde la cerca, posicion a lo largo) -> pixel de la imagen."""
+    if SIDE == "west":
+        return W - depth, along
+    if SIDE == "north":
+        return along, H - depth
+    return along, depth
+
+
+def depth_of(x, y):
+    return W - x if SIDE == "west" else (H - y if SIDE == "north" else y)
+
+
 def corpse_sprites():
     """Zombis tumbados: cuadro 'idle abajo' de cada hoja, girado y apagado."""
     out = []
@@ -187,8 +203,9 @@ def place_corpses(img, n):
             ox, oy = rnd.choice(spots)
             x, y = ox + rnd.randint(-26, 26), oy + rnd.randint(-22, 22)
         else:
-            x = int(rnd.triangular(30, W - 40, W - 70))
-            y = rnd.randrange(20, H - 30)
+            depth = int(rnd.triangular(40, DEPTH - 30, 70))   # distancia a la cerca
+            along = rnd.randrange(20, (H if SIDE == "west" else W) - 30)
+            x, y = to_xy(depth, along)
         x = max(24, min(W - 34, x))
         y = max(20, min(H - 24, y))
         spots.append((x, y))
@@ -211,37 +228,47 @@ def place_corpses(img, n):
 def vignette(img):
     px = img.load()
     for x in range(W):
-        # oscurece hacia el oeste (el campo se pierde en la niebla)
-        k = min(1.0, x / 120.0)
-        f = 0.35 + 0.65 * k
         for y in range(H):
+            dp = depth_of(x, y)
+            k = min(1.0, (DEPTH - dp) / 120.0)   # el campo se pierde en la niebla lejos de la cerca
+            f = 0.35 + 0.65 * k
+            if dp < 10:   # franja de sombra junto a la cerca
+                f *= 1.0 - (10 - dp) * 0.035
+            if SIDE != "west" and x < DEPTH:   # esquina: continua el oscurecimiento de la franja oeste
+                f *= 0.35 + 0.65 * min(1.0, x / 120.0)
             r, g, b, a = px[x, y]
             px[x, y] = (int(r * f), int(g * f), int(b * f), a)
-    # franja de sombra junto a la cerca
-    for x in range(W - 10, W):
-        for y in range(H):
-            r, g, b, a = px[x, y]
-            f = 1.0 - (x - (W - 10)) * 0.035
-            px[x, y] = (int(r * f), int(g * f), int(b * f), a)
+
+
+def make(side, name):
+    global W, H, SIDE
+    SIDE = side
+    W, H = (DEPTH, MAP_H) if side == "west" else (MAP_W + DEPTH, DEPTH)
+    # las franjas norte/sur cubren tambien la esquina oeste (x desde -384)
+    img = base()
+    scale = (W * H) / (384 * 1920)
+    cracks(img, int(160 * scale))
+    for _ in range(int(28 * scale)):
+        crater(img, rnd.randrange(40, W - 40), rnd.randrange(30, H - 30), rnd.randrange(4, 9))
+    for _ in range(int(90 * scale)):
+        ash_pile(img, rnd.randrange(6, W - 6), rnd.randrange(6, H - 6))
+    tufts(img, int(380 * scale))
+    for _ in range(int(60 * scale)):
+        bones(img, rnd.randrange(12, W - 12), rnd.randrange(8, H - 8))
+    place_corpses(img, int(135 * scale))
+    for _ in range(int(46 * scale)):
+        dead_tree(img, rnd.randrange(10, W - 22), rnd.randrange(40, H - 6))
+    vignette(img)
+    os.makedirs(OUT_DIR, exist_ok=True)
+    path = os.path.join(OUT_DIR, name)
+    img.convert("RGB").save(path, optimize=True)
+    print("ok", name, img.size, os.path.getsize(path))
 
 
 def main():
-    img = base()
-    cracks(img, 160)
-    for _ in range(28):
-        crater(img, rnd.randrange(40, W - 40), rnd.randrange(30, H - 30), rnd.randrange(4, 9))
-    for _ in range(90):
-        ash_pile(img, rnd.randrange(6, W - 6), rnd.randrange(6, H - 6))
-    tufts(img, 380)
-    for _ in range(60):
-        bones(img, rnd.randrange(12, W - 12), rnd.randrange(8, H - 8))
-    place_corpses(img, 135)
-    for _ in range(46):
-        dead_tree(img, rnd.randrange(10, W - 22), rnd.randrange(40, H - 6))
-    vignette(img)
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    img.convert("RGB").save(OUT, optimize=True)
-    print("ok", OUT, os.path.getsize(OUT))
+    make("west", "wasteland.png")
+    make("north", "wasteland_n.png")
+    make("south", "wasteland_s.png")
 
 
 if __name__ == "__main__":
