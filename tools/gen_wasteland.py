@@ -14,9 +14,24 @@ SPR = os.path.join(HERE, "..", "assets", "sprites")
 OUT_DIR = os.path.join(HERE, "..", "assets", "world")
 DEPTH = 384          # profundidad del campo (24 tiles)
 MAP_W, MAP_H = 3584, 1920   # mapa en px (224x120 tiles)
-W, H = DEPTH, MAP_H
-SIDE = "west"        # west | north | south: lado donde esta la cerca
+# Un unico lienzo para todo el anillo (oeste + norte + sur) y luego se recorta en 3 imagenes:
+# asi las esquinas y las uniones son continuas (sin lineas). Coordenadas de lienzo = mundo + DEPTH.
+W, H = MAP_W + DEPTH, MAP_H + 2 * DEPTH
+MX0, MY0, MY1 = DEPTH, DEPTH, DEPTH + MAP_H   # el mapa ocupa x>=MX0, MY0<=y<MY1 (sin franja este)
 rnd = random.Random(20261104)
+
+
+def in_map(x, y, pad=0):
+    return x >= MX0 - pad and MY0 - pad <= y < MY1 + pad
+
+
+def rand_pt(up=0, side=14):
+    """Punto aleatorio del anillo cuyo objeto (alto `up`, medio ancho `side`) no invade el mapa."""
+    while True:
+        x, y = rnd.randrange(20, W - 20), rnd.randrange(20, H - 6)
+        if x + side >= MX0 and y - up <= MY1 + 2 and y + 4 >= MY0 - 2:
+            continue
+        return x, y
 
 
 def hx(s):
@@ -49,6 +64,8 @@ def base():
     cell = 2
     for y in range(0, H, cell):
         for x in range(0, W, cell):
+            if in_map(x, y):
+                continue
             n = vnoise(x, y, 11, 40) * 0.6 + vnoise(x, y, 7, 11) * 0.4
             i = min(len(GROUND) - 1, int(n * len(GROUND)))
             c = GROUND[i]
@@ -70,7 +87,7 @@ def put(img, x, y, c):
 
 def cracks(img, n):
     for _ in range(n):
-        x, y = rnd.randrange(10, W - 10), rnd.randrange(10, H - 10)
+        x, y = rand_pt(0, 4)
         ang = rnd.random() * math.tau
         for _ in range(rnd.randrange(12, 50)):
             ang += rnd.uniform(-0.5, 0.5)
@@ -116,7 +133,7 @@ def bones(img, cx, cy):
 
 def tufts(img, n):
     for _ in range(n):
-        x, y = rnd.randrange(4, W - 4), rnd.randrange(4, H - 4)
+        x, y = rand_pt(4, 2)
         c = rnd.choice((hx("8a7a3c"), hx("6e6230"), hx("9b8d52")))
         for k in range(rnd.randrange(2, 5)):
             put(img, x + k - 1, y - rnd.randrange(1, 4), c)
@@ -150,17 +167,21 @@ def dead_tree(img, x, y):
         put(img, x + dx, y + 1, hx("352e22"))
 
 
-def to_xy(depth, along):
-    """(profundidad desde la cerca, posicion a lo largo) -> pixel de la imagen."""
-    if SIDE == "west":
-        return W - depth, along
-    if SIDE == "north":
-        return along, H - depth
-    return along, depth
+def depth_at(x, y):
+    """Distancia (Chebyshev) al borde del mapa, igual en toda la esquina."""
+    dx = max(0, MX0 - x)
+    dy = max(0, MY0 - y, y - (MY1 - 1))
+    return max(dx, dy)
 
 
-def depth_of(x, y):
-    return W - x if SIDE == "west" else (H - y if SIDE == "north" else y)
+def ring_pt_near_fence(depth):
+    """Punto del anillo a `depth` px de la cerca (lado al azar, ponderado por longitud)."""
+    r = rnd.random() * (2 * W + MAP_H)
+    if r < W:
+        return rnd.randrange(20, W - 30), MY0 - depth
+    if r < 2 * W:
+        return rnd.randrange(20, W - 30), MY1 + depth
+    return MX0 - depth, rnd.randrange(MY0, MY1)
 
 
 def corpse_sprites():
@@ -203,11 +224,11 @@ def place_corpses(img, n):
             ox, oy = rnd.choice(spots)
             x, y = ox + rnd.randint(-26, 26), oy + rnd.randint(-22, 22)
         else:
-            depth = int(rnd.triangular(40, DEPTH - 30, 70))   # distancia a la cerca
-            along = rnd.randrange(20, (H if SIDE == "west" else W) - 30)
-            x, y = to_xy(depth, along)
+            x, y = ring_pt_near_fence(int(rnd.triangular(40, DEPTH - 30, 70)))
         x = max(24, min(W - 34, x))
         y = max(20, min(H - 24, y))
+        if in_map(x, y, 10):
+            continue
         spots.append((x, y))
         name, fr = rnd.choice(sprites[:-1] if rnd.random() < 0.95 else sprites[-1:])
         fr = dim(fr.copy())
@@ -227,48 +248,45 @@ def place_corpses(img, n):
 
 def vignette(img):
     px = img.load()
-    for x in range(W):
-        for y in range(H):
-            dp = depth_of(x, y)
+    for y in range(H):
+        for x in range(W):
+            if in_map(x, y):
+                continue
+            dp = depth_at(x, y)
             k = min(1.0, (DEPTH - dp) / 120.0)   # el campo se pierde en la niebla lejos de la cerca
             f = 0.35 + 0.65 * k
             if dp < 10:   # franja de sombra junto a la cerca
                 f *= 1.0 - (10 - dp) * 0.035
-            if SIDE != "west" and x < DEPTH:   # esquina: continua el oscurecimiento de la franja oeste
-                f *= 0.35 + 0.65 * min(1.0, x / 120.0)
             r, g, b, a = px[x, y]
             px[x, y] = (int(r * f), int(g * f), int(b * f), a)
 
 
-def make(side, name):
-    global W, H, SIDE
-    SIDE = side
-    W, H = (DEPTH, MAP_H) if side == "west" else (MAP_W + DEPTH, DEPTH)
-    # las franjas norte/sur cubren tambien la esquina oeste (x desde -384)
+def main():
     img = base()
-    scale = (W * H) / (384 * 1920)
+    scale = (W * H - MAP_W * MAP_H) / (384 * 1920)
     cracks(img, int(160 * scale))
     for _ in range(int(28 * scale)):
-        crater(img, rnd.randrange(40, W - 40), rnd.randrange(30, H - 30), rnd.randrange(4, 9))
+        cx, cy = rand_pt(9, 14)
+        crater(img, cx, cy, rnd.randrange(4, 9))
     for _ in range(int(90 * scale)):
-        ash_pile(img, rnd.randrange(6, W - 6), rnd.randrange(6, H - 6))
+        ash_pile(img, *rand_pt(0, 8))
     tufts(img, int(380 * scale))
     for _ in range(int(60 * scale)):
-        bones(img, rnd.randrange(12, W - 12), rnd.randrange(8, H - 8))
+        bones(img, *rand_pt(0, 8))
     place_corpses(img, int(135 * scale))
     for _ in range(int(46 * scale)):
-        dead_tree(img, rnd.randrange(10, W - 22), rnd.randrange(40, H - 6))
+        tx, ty = rand_pt(46, 12)
+        dead_tree(img, tx, ty)
     vignette(img)
     os.makedirs(OUT_DIR, exist_ok=True)
-    path = os.path.join(OUT_DIR, name)
-    img.convert("RGB").save(path, optimize=True)
-    print("ok", name, img.size, os.path.getsize(path))
-
-
-def main():
-    make("west", "wasteland.png")
-    make("north", "wasteland_n.png")
-    make("south", "wasteland_s.png")
+    rgb = img.convert("RGB")
+    # recortes: oeste (bajo el mapa-oeste), norte y sur (incluyen las esquinas)
+    for name, box in (("wasteland.png", (0, MY0, DEPTH, MY1)),
+                      ("wasteland_n.png", (0, 0, W, MY0)),
+                      ("wasteland_s.png", (0, MY1, W, H))):
+        path = os.path.join(OUT_DIR, name)
+        rgb.crop(box).save(path, optimize=True)
+        print("ok", name, os.path.getsize(path))
 
 
 if __name__ == "__main__":
